@@ -6,6 +6,7 @@
 <title>LAB Control — Produtos</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+
   :root {
     --bg: #0d0f14;
     --surface: #151820;
@@ -366,9 +367,37 @@
   .btn-pdf:hover { background: rgba(62,207,142,.1); border-color: var(--green); transform: translateY(-1px); }
 
 
+
+
+  /* SYNC INDICATOR */
+  .sync-indicator { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); }
+  .sync-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+  .sync-dot.syncing { background:var(--yellow); animation:spin .8s linear infinite; }
+  .sync-dot.error { background:var(--red); animation:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  /* IMPORT SECTION */
+  .import-section { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; margin-bottom:24px; }
+  .import-title { font-size:14px; font-weight:700; margin-bottom:6px; }
+  .import-sub { font-size:13px; color:var(--muted); margin-bottom:14px; }
+  .btn-import { padding:10px 20px; background:rgba(62,207,142,.1); border:1px solid rgba(62,207,142,.3); color:var(--green); font-family:var(--font); font-size:13px; font-weight:700; cursor:pointer; border-radius:10px; transition:all .2s; }
+  .btn-import:hover { background:rgba(62,207,142,.2); }
+  .import-progress { margin-top:14px; display:none; }
+  .progress-bar-wrap { height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin-bottom:8px; }
+  .progress-bar { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:3px; transition:width .3s; }
+  .progress-text { font-size:12px; color:var(--muted); font-family:var(--mono); }
+
 </style>
 </head>
 <body>
+
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+  <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;"></div>
+  <div style="font-size:14px;color:var(--muted);" id="loading-text">Conectando...</div>
+</div>
+
 
 <!-- AUTH SCREEN -->
 <div id="auth-screen">
@@ -401,6 +430,7 @@
         <div class="topbar-greeting-role" id="user-funcao-display">—</div>
       </div>
     </div>
+    <div class="sync-indicator"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">Sincronizado</span></div>
     <div class="topbar-user">
       <span id="user-badge"></span>
       <div class="topbar-avatar" id="user-avatar">A</div>
@@ -460,6 +490,15 @@
       </div>
       <button class="btn-add" onclick="openModalNovoProduto()">+ Novo Produto</button>
     </div>
+    <div class="import-section" id="import-section" style="display:none">
+      <div class="import-title">📦 Importar dados iniciais</div>
+      <div class="import-sub">O banco está vazio. Importe todos os produtos da planilha com um clique.</div>
+      <button class="btn-import" onclick="importInitialData()">Importar Produtos da Planilha</button>
+      <div class="import-progress" id="import-progress">
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+        <div class="progress-text" id="progress-text">Importando...</div>
+      </div>
+    </div>
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -494,98 +533,556 @@
   </div>
 </div>
 
-// ===================== STATE =====================
-let products = JSON.parse(localStorage.getItem('lab_products') || 'null') || INITIAL_PRODUCTS.map(p=>({id:Date.now()+Math.random(),code:p[0],model:p[1],qty:p[2]}));
-let users = JSON.parse(localStorage.getItem('lab_users') || 'null') || [
-  {id:1, name:'Administrador', email:'admin@lab.com', username:'admin', password:'lab2024', role:'admin'},
-  {id:2, name:'Visualizador', email:'viewer@lab.com', username:'viewer', password:'viewer123', role:'viewer'},
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
+import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js';
+
+// ── FIREBASE CONFIG ──────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBNgaD6lggwGXLs8qBGglWFjDk5lMFpcPQ",
+  authDomain: "lab-control-daa9d.firebaseapp.com",
+  projectId: "lab-control-daa9d",
+  storageBucket: "lab-control-daa9d.firebasestorage.app",
+  messagingSenderId: "802403495584",
+  appId: "1:802403495584:web:d01d337582e4dbdae323c5"
+};
+
+// ── PRODUTOS INICIAIS ────────────────────────────────
+const INITIAL_PRODUCTS = [
+  ["76726-01","AIR FRYER AF-35-BF 127V/60Hz",2],
+  ["76726-02","AIR FRYER AF-35-BF 220V/60Hz",1],
+  ["75992-02","AIR FRYER AF-36-BI 220V/60Hz",1],
+  ["75999-01","AIR FRYER AF-36-FB 127V/60Hz",1],
+  ["75999-02","AIR FRYER AF-36-FB 220V/60Hz",1],
+  ["75199-01","AIR FRYER AF-50-DV  127V/60Hz",1],
+  ["75198-02","AIR FRYER AF-50-DVI  220V/60Hz",3],
+  ["5666-03","AIR FRYER AFON-12L-BI 127V/60Hz",0],
+  ["75787-01","AIR FRYER OVEN AFDO-25L-FD 127V60HZ",2],
+  ["75787-02","AIR FRYER OVEN AFDO-25L-FD 220V/60Hz",1],
+  ["75310-01","APARADOR PELOS TR-01 BIVOLT",1],
+  ["79660-03","AQUECEDOR A AR A-08 127V/60Hz",3],
+  ["79660-02","AQUECEDOR A AR A-08 220V/60HZ",2],
+  ["74260-03","AQUECEDOR A OLEO A-06 127V/60Hz",2],
+  ["74260-04","AQUECEDOR A OLEO A-06 220V/60Hz",2],
+  ["72150-01","AQUECEDOR CERAMIC A-05 127V/60Hz",3],
+  ["72150-02","AQUECEDOR CERAMIC A-05 220V/60Hz",3],
+  ["75565-01","AQUECEDOR QUARTZO A-16 127V/60HZ",1],
+  ["75565-02","AQUECEDOR QUARTZO A-16 220V/60HZ",3],
+  ["79130-01","ASPIRADOR PO AP-15 127V/60Hz",1],
+  ["74247-01","ASPIRADOR PO AP-25 127V/60Hz",2],
+  ["79676-01","ASPIRADOR PO AP-36 127V/60Hz VERTICAL",2],
+  ["79676-02","ASPIRADOR PO AP-36 220V/60Hz VERTICAL",2],
+  ["75570-03","ASPIRADOR PO AP-40-B 127V/60Hz",1],
+  ["75570-05","ASPIRADOR PO AP-40-B 127V/60Hz",4],
+  ["75570-04","ASPIRADOR PO AP-40-B 220V/60Hz",2],
+  ["75570-06","ASPIRADOR PO AP-40-B 220V/60Hz",4],
+  ["75569-03","ASPIRADOR PO AP-40-R 127V/60Hz",2],
+  ["75569-04","ASPIRADOR PO AP-40-R 220V/60Hz",2],
+  ["75577-03","ASPIRADOR PO AP-41-BLI 127V/60Hz",2],
+  ["75577-04","ASPIRADOR PO AP-41-BLI 220V/60Hz",2],
+  ["75576-03","ASPIRADOR PO AP-41-GI 127V/60Hz",2],
+  ["75576-04","ASPIRADOR PO AP-41-GI 220V/60Hz",2],
+  ["74410-02","BALANÇA DIGITAL BL-03 BIVOLT",1],
+  ["76640-01","BALANÇA DIGITAL BL-05 BIVOLT",1],
+  ["2353-02","BATED PLANET BP-03-B 220V/60Hz TIGELA PP",1],
+  ["0860-21","BATEDEIRA B-12 220V/60HZ PRATICA",1],
+  ["75810-02","BODY GROOM BG-03 BIVOLT",1],
+  ["76410-02","BODY GROOM BG-04 BIVOLT",1],
+  ["76810-02","BODY GROOM BG-05 BIVOLT",4],
+  ["74656-02","BODY GROOM BG-06 BIVOLT",3],
+  ["74013-01","BODY GROOM BG-09 BIVOLT",2],
+  ["79805-01","BOOMBOX AWS-BBS-02-A BIVOLT",1],
+  ["71850-02","CAFETEIRA C-08 220V/60Hz",2],
+  ["72692-01","CAFETEIRA C-30-18X 127V/60Hz",2],
+  ["72692-02","CAFETEIRA C-30-18X 220V/60Hz",2],
+  ["79191-01","CAFETEIRA C-30-18X-FB 127V/60Hz",2],
+  ["79191-02","CAFETEIRA C-30-18X-FB 220V/60Hz",2],
+  ["72672-01","CAFETEIRA C-32-32X 127V/60Hz",2],
+  ["72672-02","CAFETEIRA C-32-32X 220V/60Hz",2],
+  ["72643-02","CAFETEIRA C-32-32X-R 220V/60Hz",2],
+  ["72652-01","CAFETEIRA C-33JT-24X 127V/60Hz",2],
+  ["72652-02","CAFETEIRA C-33JT-24X 220V/60H",2],
+  ["72642-01","CAFETEIRA C-34JI-15X 127V/60Hz",2],
+  ["72642-02","CAFETEIRA C-34JI-15X 220V/60Hz",2],
+  ["72685-02","CAFETEIRA C-35-18X 220V/60Hz",2],
+  ["72687-01","CAFETEIRA C-37JI-30X 127V/60Hz",2],
+  ["72687-02","CAFETEIRA C-37JI-30X 220V/60Hz",2],
+  ["74992-01","CAFETEIRA C-42-2X-BI 127V/60Hz",2],
+  ["74992-02","CAFETEIRA C-42-2X-BI 220V/60Hz",3],
+  ["74991-01","CAFETEIRA C-42-2X-RI 127V/60Hz 2 XÍCARAS",2],
+  ["74991-02","CAFETEIRA C-42-2X-RI 220V/60Hz 2 XÍCARAS",2],
+  ["72052-01","CAFETEIRA C-43-20X-SI 127V/60Hz",2],
+  ["72052-02","CAFETEIRA C-43-20X-SI 220V/60Hz",1],
+  ["74054-01","CAFETEIRA C-44-32X-SDI 127V/60Hz",2],
+  ["74054-02","CAFETEIRA C-44-32X-SDI 220V/60Hz",1],
+  ["74655-01","CAFETEIRA ESPRESSO C-21-E-CNP 127V/60Hz",2],
+  ["74655-02","CAFETEIRA ESPRESSO C-21-E-CNP 220V/60HZ",2],
+  ["74352-01","CAFETEIRA ESPRESSO CCL-01 127V/60HZ",4],
+  ["74352-02","CAFETEIRA ESPRESSO CCL-01 220V/60HZ",2],
+  ["75578-01","CAFETEIRA MONDIAL C-28-ECL 127V/60HZ",6],
+  ["75578-02","CAFETEIRA MONDIAL C-28-ECL 220V/60HZ",10],
+  ["7410-01","CARREGADOR DE BATERIA BT-01 BIVOLT",1],
+  ["79520-02","CHALEIRA CE-06 220V/60Hz",1],
+  ["79523-01","CHALEIRA ELETRICA CE-06-R 127V/60Hz",2],
+  ["79523-02","CHALEIRA ELETRICA CE-06-R 220V/60Hz",2],
+  ["79730-01","CHALEIRA ELETRICA CE-07 127V/60Hz",1],
+  ["79730-02","CHALEIRA ELETRICA CE-07 220V/60Hz",2],
+  ["75559-01","CHALEIRA ELETRICA CE-17 127V/60Hz",1],
+  ["75559-02","CHALEIRA ELETRICA CE-17 220V/60Hz",2],
+  ["75116-01","CHALEIRA ELETRICA CE-17-BC 127V/60Hz",1],
+  ["75116-02","CHALEIRA ELETRICA CE-17-BC 220V/60Hz",2],
+  ["76880-01","CHURRASQUEIRA ELETRICA CH-05 127V/60Hz",4],
+  ["76880-02","CHURRASQUEIRA ELETRICA CH-05 220V/60Hz",2],
+  ["78890-03","CHURRASQUEIRA ELETRICA CH-06 127V/60Hz",1],
+  ["78890-04","CHURRASQUEIRA ELETRICA CH-06 220V/60Hz",1],
+  ["76770-01","CHURRASQUEIRA ELETRICA CH-07 127V/60HZ P",2],
+  ["76770-02","CHURRASQUEIRA ELETRICA CH-07 220V/60HZ P",1],
+  ["75585-01","CLIMATIZADOR 45LITROS CL-45L 127V/60HZ",2],
+  ["75585-02","CLIMATIZADOR 45LITROS CL-45L 220V/60HZ",3],
+  ["75586-01","CLIMATIZADOR 65LITROS CL-65L 127V/60HZ",3],
+  ["75586-02","CLIMATIZADOR 65LITROS CL-65L 220V/60HZ",2],
+  ["71026-01","CLIMATIZADOR CL-03 127V/60Hz",2],
+  ["71026-02","CLIMATIZADOR CL-03 220V/60Hz",2],
+  ["75000-01","CLIMATIZADOR CL-07L 127V/60Hz",4],
+  ["75000-02","CLIMATIZADOR CL-07L 220V/60Hz",4],
+  ["75001-01","CLIMATIZADOR CL-25L 127V/60Hz",4],
+  ["75001-02","CLIMATIZADOR CL-25L 220V/60Hz",4],
+  ["75568-01","CONJUNTO PORTA CAPSULA CPC-DG",12],
+  ["75567-01","CONJUNTO PORTA CAPSULA CPC-NP",3],
+  ["70408-01","COOKTOP DE INDUÇÃO 2Q CTI-02 220V",2],
+  ["70409-01","COOKTOP DE INDUÇÃO 4Q CTI-03 220V",4],
+  ["71250-07","CORTADOR CABELO CR-02 127V/60Hz",0],
+  ["74015-01","CORTADOR DE CABELO CR-11 BIVOLT",2],
+  ["74440-01","CREPEIRA CP-01 127V/60Hz",2],
+  ["74560-01","CUPCAKE CK-01 127V/60Hz",2],
+  ["74560-02","CUPCAKE CK-01 220V/60Hz",2],
+  ["74592-01","EARBUD AWS-EB-01-B BIVOLT",0],
+  ["72301-01","EARBUD AWS-EB-04-B BIVOLT",2],
+  ["72302-01","EARBUD AWS-EB-04-P BIVOLT",2],
+  ["72303-01","EARBUD AWS-EB-04-W BIV",2],
+  ["74303-01","EARBUD AWS-EB-05-B BIVOLT",0],
+  ["71085-02","ESCOVA ROTATIVA ER-10 220V/60Hz",5],
+  ["70513-01","ESCOVA ROTATIVA ER-11-AR 127V/60Hz",1],
+  ["78986-02","ESCOVA ROTATIVA ERB-01 BIVOLT",4],
+  ["70005-01","ESCOVA ROTATIVA ERB-11-KR BIVOLT",8],
+  ["73841-02","ESCOVA SECADORA ES-01-IR BIVOLT",2],
+  ["74586-04","ESCOVA SECADORA ES-02-BI BIVOLT",2],
+  ["74562-03","ESCOVA SECADORA ES-05-BI BIVOLT",2],
+  ["9654-01","ESCOVA SECADORA ES-14 127V/60Hz",2],
+  ["9654-02","ESCOVA SECADORA ES-14 220V/60Hz",2],
+  ["70775-04","ESCOVA SECADORA ES-15 BIVOLT",1],
+  ["72109-05","ESCOVA SECADORA ES-50 BIVOLT",2],
+  ["73275-03","ESCOVA SECADORA ES-JU-01 BIVOLT",0],
+  ["73275-04","ESCOVA SECADORA ES-JU-01 BIVOLT",2],
+  ["72875-03","ESCOVA SECADORA ES-JU-02 BIVOLT",0],
+  ["73876-03","ESCOVA SECADORA ES-JU-03 BIVOLT",1],
+  ["73876-04","ESCOVA SECADORA ES-JU-03 BIVOLT",2],
+  ["74000-02","ESCOVA SECADORA SLIM ES-20 BIVOLT",1],
+  ["74001-02","ESCOVA SECADORA SLIM ES-21 BIVOLT",2],
+  ["4190-01","EXTRATOR E-10 BIVOLT TURBO 250W PREMIUM",1],
+  ["75020-01","FERRO A VAPOR F-32 127V/60Hz",6],
+  ["75020-02","FERRO A VAPOR F-32 220V/60Hz",1],
+  ["74660-01","FERRO A VAPOR F-40 127V/60Hz",5],
+  ["74660-02","FERRO A VAPOR F-40 220V/60Hz",6],
+  ["75302-01","FERRO A VAPOR F-53 127V/60Hz",6],
+  ["75302-02","FERRO A VAPOR F-53 220V/60Hz",2],
+  ["75289-01","FERRO SECO FS-01-BI  - 127V/60Hz",2],
+  ["75289-02","FERRO SECO FS-01-BI  - 220V/60Hz",1],
+  ["75973-01","FOGAO ELETRICO FE-03 127V/60Hz",1],
+  ["75973-02","FOGAO ELETRICO FE-03 220V/60Hz",2],
+  ["75974-01","FOGAO ELETRICO FE-04 127V/60Hz",2],
+  ["75974-02","FOGAO ELETRICO FE-04 220V/60Hz",1],
+  ["74589-01","FONE DE OUVIDO AWS-HP-01-B BIVOLT",0],
+  ["72101-01","FONE DE OUVIDO AWS-HP-03-B BIV",2],
+  ["72103-01","FONE DE OUVIDO AWS-HP-03-P BIV",2],
+  ["72102-01","FONE DE OUVIDO AWS-HP-03-W BIV",2],
+  ["72403-01","FONE DE OUVIDO AWS-HP-04-B BIVOLT",4],
+  ["74301-01","FONE DE OUVIDO AWS-HP-05-B BIVOLT",2],
+  ["75529-01","FORNO ELÉTRICO FR-42 127V/60Hz",2],
+  ["75529-02","FORNO ELÉTRICO FR-42 220V/60Hz",2],
+  ["75563-01","FORNO ELETRICO FR-52-W 127V/60Hz",2],
+  ["73111-01","FREEZER HORIZ -  FHZ-01-W150 - 127V/60Hz",1],
+  ["73111-02","FREEZER HORIZ -  FHZ-01-W150 - 220V/60Hz",1],
+  ["73112-02","FREEZER HORIZ -  FHZ-01-W320 - 220V/60Hz",1],
+  ["73118-01","FRIGOBAR 120L - FGB-01-B120 - 127V/60Hz",1],
+  ["73118-02","FRIGOBAR 120L - FGB-01-B120 - 220V/60Hz",1],
+  ["73115-01","FRIGOBAR 120L - FGB-01-W120 - 127V/60Hz",1],
+  ["73115-03","FRIGOBAR 120L - FGB-01-W120 - 127V/60Hz",1],
+  ["73115-02","FRIGOBAR 120L - FGB-01-W120 - 220V/60Hz",1],
+  ["73115-04","FRIGOBAR 120L - FGB-01-W120 - 220V/60Hz",1],
+  ["73116-01","FRIGOBAR 46L - FGB-01-B50 - 127V/60HZ",1],
+  ["73116-02","FRIGOBAR 46L - FGB-01-B50- 220V/60HZ",1],
+  ["73113-02","FRIGOBAR 46L - FGB-01-W50 - 220V/60HZ",1],
+  ["73113-04","FRIGOBAR 46L - FGB-01-W50 - 220V/60HZ",1],
+  ["73113-01","FRIGOBAR 46L- FGB-01-W50 127V/60HZ",1],
+  ["73113-03","FRIGOBAR 46L- FGB-01-W50 127V/60HZ",1],
+  ["73117-01","FRIGOBAR 73L - FGB-01-B80 - 127V/60HZ",1],
+  ["73117-02","FRIGOBAR 73L - FGB-01-B80 - 220V/60HZ",1],
+  ["73114-01","FRIGOBAR 73L - FGB-01-W80 - 127V/60HZ",1],
+  ["73114-02","FRIGOBAR 73L - FGB-01-W80 - 220V/60HZ",1],
+  ["73114-04","FRIGOBAR 73L - FGB-01-W80 - 220V/60HZ",1],
+  ["79980-01","FRITADEIRA FT-07 127V/60Hz",1],
+  ["79980-02","FRITADEIRA FT-07 220V/60Hz",2],
+  ["77180-03","FURADEIRA NFFI-07 127V/60Hz",1],
+  ["71470-07","GRILL G-03 127V/60Hz",1],
+  ["71470-08","GRILL G-03 220V/60Hz",1],
+  ["79912-01","GRILL G-03-RC 127V/60Hz",1],
+  ["79912-02","GRILL G-03-RC 220V/60Hz",2],
+  ["72730-07","GRILL G-04 127V/60Hz SMART GRILL",1],
+  ["72730-08","GRILL G-04 220V/60Hz SMART GRILL",2],
+  ["73090-01","GRILL G-07 127V/60Hz",1],
+  ["73090-02","GRILL G-07 220V/60Hz",1],
+  ["77360-01","GRILL WAFFLE GW-01 127V/60Hz",1],
+  ["77360-02","GRILL WAFFLE GW-01 220V/60Hz",1],
+  ["5475-01","LIQUIDIFICADOR L-1200 BI 127V/60Hz",3],
+  ["4678-01","LIQUIDIFICADOR L-1400-GI 127V/60Hz",3],
+  ["4945-06","LIQUIDIFICADOR L-900 FB 220V/60Hz",1],
+  ["78688-01","MAQUINA DE GELO MG-12-GI TURBO 127V/60Hz",2],
+  ["78688-03","MAQUINA DE GELO MG-12-GI TURBO 127V/60Hz",3],
+  ["78688-02","MAQUINA DE GELO MG-12-GI TURBO 220V/60Hz",1],
+  ["78688-04","MAQUINA DE GELO MG-12-GI TURBO 220V/60Hz",3],
+  ["2430-01","MICRO RETIFICA FMR-01 127V/60Hz",0],
+  ["72430-01","MICRO RETIFICA FMR-01 127V/60Hz",1],
+  ["78881-01","MICROFONE WIRELESS AWS-MIC-01 BIVOLT",1],
+  ["5617-02","MICRO-ONDAS MO-02-34-W 220V/60HZ .",1],
+  ["75581-01","MINI PROCESSADOR MP-05-B 127V/60HZ",2],
+  ["79925-01","MINI PROCESSADOR MP-16-B 127V/60Hz",2],
+  ["79925-02","MINI PROCESSADOR MP-16-B 220V/60Hz",2],
+  ["71045-01","MINI PROCESSADOR MP-16-R 127V/60Hz",2],
+  ["74985-02","MINI SPEAKER AWS-SP-01 BIV.",3],
+  ["72505-01","MINI SPEAKER AWS-SP-03-B BIV",1],
+  ["72404-01","MINI SPEAKER AWS-SP-03-BL BIV",2],
+  ["74305-01","MINI SPEAKER AWS-SP-04-LB BIV",2],
+  ["74306-01","MINI SPEAKER AWS-SP-05-LB BIV.",2],
+  ["73301-01","MINI SPEAKER AWS-SP-06-B BIV",3],
+  ["73302-01","MINI SPEAKER AWS-SP-07 BIV",2],
+  ["77058-03","MIXER M-14 127V/60Hz",4],
+  ["77058-04","MIXER M-14 220V/60Hz",4],
+  ["72047-01","MIXER M-15-B 127V/60Hz",2],
+  ["72047-02","MIXER M-15-B 220V/60Hz",2],
+  ["75580-01","MOEDOR DE CAFE MCF-01-BI 127V/60HZ",2],
+  ["75580-02","MOEDOR DE CAFE MCF-01-BI 220V/60HZ",2],
+  ["72181-01","MOEDOR DE CARNE MC-03 127V/60Hz",2],
+  ["72181-02","MOEDOR DE CARNE MC-03 220V/60Hz",1],
+  ["0935-28","MOTOR (REDUÇÃO DE RPM) [V-30] 220V",0],
+  ["0935-09","MOTOR 7512 127V - VENTILADOR 30CM",0],
+  ["9470-01","MULTIPROCESSADOR MP-13 127V/60Hz",1],
+  ["76850-01","OMELETEIRA ELETRICA OM-02 127V/60Hz",1],
+  ["76850-02","OMELETEIRA ELETRICA OM-02 220V/60Hz",2],
+  ["70476-01","OMELETEIRA ELETRICA OM-04-BI 127V/60Hz",1],
+  ["70476-04","OMELETEIRA ELETRICA OM-04-BI 220V/60Hz",2],
+  ["70576-01","OMELETEIRA ELÉTRICA OM-04-RI 127V/60Hz",1],
+  ["70576-04","OMELETEIRA ELÉTRICA OM-04-RI 220V/60Hz",2],
+  ["74166-02","PAN ELET. PRESS. PE-48-5L-I 220V/60Hz",2],
+  ["74885-01","PAN ELET.PRESS. PE-60-6L-RI 127V/60HZ",4],
+  ["74885-02","PAN ELET.PRESS. PE-60-6L-RI 220V/60HZ",1],
+  ["76549-01","PAN. ELET. PRESS. PE-60-6L-I 127V/60HZ",2],
+  ["76549-02","PAN. ELET. PRESS. PE-60-6L-I 220V/60HZ",2],
+  ["74152-01","PANELA ELETR DE ARROZ PE-42-10X127V/60Hz",2],
+  ["74152-02","PANELA ELETR DE ARROZ PE-42-10X220V/60Hz",2],
+  ["74153-01","PANELA ELETR DE ARROZ PE-43-6X 127V/60Hz",2],
+  ["74153-02","PANELA ELETR DE ARROZ PE-43-6X 220V/60Hz",1],
+  ["74154-01","PANELA ELETR DE ARROZ PE-44-10X127V/60Hz",2],
+  ["74154-02","PANELA ELETR DE ARROZ PE-44-10X220V/60Hz",2],
+  ["74156-01","PANELA ELETR DE ARROZ PE-45-6X 127V/60Hz",2],
+  ["74156-02","PANELA ELETR DE ARROZ PE-45-6X 220V/60Hz",2],
+  ["74157-01","PANELA ELETR DE ARROZ PE-46-10X127V/60Hz",2],
+  ["74159-01","PANELA ELETR PRESS  PE-47-3L-I 127V/60Hz",2],
+  ["74159-02","PANELA ELETR PRESS  PE-47-3L-I 220V/60Hz",2],
+  ["74210-05","PANELA ELETRICA ARROZ PE-10 127V/60Hz",2],
+  ["74210-06","PANELA ELETRICA ARROZ PE-10 220V/60Hz",2],
+  ["70002-01","PANELA ELETRICA BLACK PE-30-10X 127V",1],
+  ["70002-02","PANELA ELETRICA BLACK PE-30-10X 220V",2],
+  ["70001-01","PANELA ELETRICA BLACK PE-30-6X 127V",2],
+  ["70001-02","PANELA ELETRICA BLACK PE-30-6X 220V",2],
+  ["74166-01","PANELA ELÉTRICA DE PRESSÃO PE-48-5L-I",2],
+  ["77380-01","PANELA ELETRICA GRILL PE-28 127V/60Hz",1],
+  ["77380-02","PANELA ELETRICA GRILL PE-28 220V/60Hz",2],
+  ["79914-01","PANELA ELETRICA GRILL PE-49 127V/60Hz",2],
+  ["79914-02","PANELA ELETRICA GRILL PE-49 220V/60Hz",2],
+  ["79913-01","PANELA ELETRICA GRILL PE-49-RC 127V/60Hz",2],
+  ["79913-02","PANELA ELETRICA GRILL PE-49-RC 220V/60Hz",1],
+  ["72525-01","PANELA ELETRICA NPE-05-5X 127V/60Hz",1],
+  ["72525-02","PANELA ELETRICA NPE-05-5X 220V/60Hz",2],
+  ["73535-01","PANELA ELETRICA NPE-08-5X 127V/60Hz",0],
+  ["73535-02","PANELA ELETRICA NPE-08-5X 220V/60Hz",2],
+  ["74155-03","PANELA ELETRICA PRESSAO PE-38 127V/60Hz",2],
+  ["74165-03","PANELA ELETRICA PRESSAO PE-39 127V/60Hz",4],
+  ["74165-04","PANELA ELETRICA PRESSAO PE-39 220V/60Hz",2],
+  ["74175-03","PANELA ELETRICA PRESSAO PE-40 127V/60Hz",2],
+  ["74175-04","PANELA ELETRICA PRESSAO PE-40 220V/60Hz",2],
+  ["71625-02","PANIFICADORA NPF-53 220V/60Hz",2],
+  ["77612-01","PARAF FPF-05M BIVOLT KIT OFICINA 4,8V",0],
+  ["0102-02","PARAFUSO PLASTIC PH PL 3,5 X 12MM ZC",0],
+  ["72407-01","PARTY BOX PBX-350 BIVOLT",0],
+  ["74852-01","PARTY BOX PBX-800 BIVOLT",2],
+  ["78670-01","PERSONAL BLENDER DG-01 127V/60Hz",2],
+  ["78670-02","PERSONAL BLENDER DG-01 220V/60Hz",1],
+  ["79075-01","PIPOQUEIRA PP-03 127V/60Hz",1],
+  ["79075-02","PIPOQUEIRA PP-03 220V/60Hz",1],
+  ["79955-01","PIPOQUEIRA PP-05 127V/60Hz",2],
+  ["79955-02","PIPOQUEIRA PP-05 220V/60Hz",1],
+  ["72026-02","PIPOQUEIRA PP-3C 220V/60Hz",3],
+  ["72415-01","PLAINA ELÉTRICA FPL-02 127V/60Hz",2],
+  ["72415-02","PLAINA ELÉTRICA FPL-02 220V/60Hz",2],
+  ["75895-01","PRANCHA ALISADORA P-30T BIVOLT",0],
+  ["74376-01","PRANCHA ALISADORA P-JU-01 BIVOLT",2],
+  ["73877-01","PRANCHA ALISADORA P-JU-03 BIVOLT",2],
+  ["72625-05","PRESS GRILL PG-01 127V/60Hz",2],
+  ["72625-06","PRESS GRILL PG-01 220V/60Hz",2],
+  ["72626-03","PRESS GRILL PG-01-180 127V/60HZ",2],
+  ["72626-04","PRESS GRILL PG-01-180 220V/60HZ",2],
+  ["70007-01","PRESS GRILL PG-01-CL 127V/60Hz",4],
+  ["72845-03","PRESS GRILL PG-02 127V/60Hz",1],
+  ["72845-04","PRESS GRILL PG-02 220V/60Hz",1],
+  ["72222-03","PRESS GRILL RED CER PG-01-RC 127V/60Hz",1],
+  ["72222-04","PRESS GRILL RED CER PG-01-RC 220V/60Hz",2],
+  ["70009-01","PRESS GRILL RED CER PG-01-RC-CL 127V/60Hz",4],
+  ["70009-02","PRESS GRILL RED CER PG-01-RC-CL 220V/60Hz",4],
+  ["72510-01","SANDUICHEIRA S-07 127V/60Hz",1],
+  ["72510-02","SANDUICHEIRA S-07 220V/60Hz",1],
+  ["74050-01","SANDUICHEIRA S-12 127V/60Hz",1],
+  ["74050-02","SANDUICHEIRA S-12 220V/60Hz",1],
+  ["78641-01","SANDUICHEIRA S-19 127V/60Hz",2],
+  ["78641-02","SANDUICHEIRA S-19 220V/60Hz",1],
+  ["78642-03","SANDUICHEIRA S-20 127V/60Hz",2],
+  ["78642-04","SANDUICHEIRA S-20 220V/60Hz",1],
+  ["73878-02","SEC CABELOS PROF SCP-JU-03 220V/60Hz",2],
+  ["74008-01","SEC. CABELO SC-20-BI BIVOLT/60Hz",2],
+  ["74009-01","SEC. CABELO SC-21-BI BIVOLT/60Hz",2],
+  ["74019-02","SECADOR BLDC SCP-01-US 220V/60HZ",2],
+  ["74019-01","SECADOR BLDC SCP-01-US 220V/60Hz",2],
+  ["74018-01","SECADOR BLDC SCP-JU-04-US 127V/60HZ",4],
+  ["74018-02","SECADOR BLDC SCP-JU-04-US 220V/60HZ",4],
+  ["74080-01","SECADOR CABELO SC-10 BIVOLT",0],
+  ["74071-01","SECADOR DE CABELO SC-13-BI 2200W",2],
+  ["78010-01","SECADOR DE CABELOS SC-32-BI BIVOLT/60Hz",2],
+  ["78010-02","SECADOR DE CABELOS SC-32-BI BIVOLT/60Hz",1],
+  ["78011-01","SECADOR DE CABELOS SC-37-BI BIVOLT/60Hz",2],
+  ["78011-02","SECADOR DE CABELOS SC-37-BI BIVOLT/60Hz",2],
+  ["70615-02","SECADOR DE CABELOS SC-41 220V/60Hz",0],
+  ["75112-01","SECADOR DE CABELOS SCT-JU-03 BIVOLT",4],
+  ["73658-01","SECADOR MULTIF SM-01-BLDC-CP 127V/60HZ",3],
+  ["73658-02","SECADOR MULTIF SM-01-BLDC-CP 220V/60HZ",3],
+  ["78569-01","SECADOR MULTIF SM-01-BLDC-GR 127V/60HZ",1],
+  ["78569-02","SECADOR MULTIF SM-01-BLDC-GR 220V/60HZ",1],
+  ["78570-01","SECADOR MULTIF SM-01-BLDC-SP 127V/60HZ",2],
+  ["78570-02","SECADOR MULTIF SM-01-BLDC-SP 220V/60HZ",1],
+  ["0012-80","SUPORTE PLÁSTICO PRETO [ES]",0],
+  ["72501-01","TORRE DE SOM TM-2200-B BIV",2],
+  ["71802-01","TOSTADOR DE PAES T-18 127V/60Hz",2],
+  ["71802-02","TOSTADOR DE PAES T-18 220V/60Hz",2],
+  ["74645-01","TOSTADOR PAES T-13 127V/60Hz",1],
+  ["74645-02","TOSTADOR PAES T-13 220V/60Hz",1],
+  ["74308-01","TV 24\" PORTATIL AWS-TV-24-01-G BIV",2],
+  ["72771-01","UMIDIFICADOR DE AR NUA-02 BIVOLT",3],
+  ["76490-01","UMIDIFICADOR DE AR UA-07 BIVOLT",3],
+  ["75494-01","VAPORIZADOR VP-07 127V/60Hz",1],
+  ["75494-02","VAPORIZADOR VP-07 220V/60Hz",1],
+  ["75668-01","VAPORIZADOR VP-09 127V/60Hz",1],
+  ["75668-02","VAPORIZADOR VP-09 220V/60Hz",2],
+  ["75582-01","VAPORIZADOR VP-10-DB BIVOLT/60HZ",1],
+  ["3033-06","VENT 40CM VTX-40C-8P 220V/60Hz COLUNA",2],
+  ["6664-02","VENT 50CM PRO NVP-PRO-50 220V/60Hz",3],
+  ["75002-01","VENTILADOR TORRE  VTR-01-B 127V/60Hz",1],
+  ["75002-02","VENTILADOR TORRE  VTR-01-B 220V/60Hz",2]
 ];
-let currentUser = null;
+
+// ── STATE ────────────────────────────────────────────
+let db = null, products = [], users = [], currentUser = null;
 let pagView = 1, pagManage = 1;
 const PER_PAGE = 25;
 
-function saveProducts() { localStorage.setItem('lab_products', JSON.stringify(products)); }
-function saveUsers() { localStorage.setItem('lab_users', JSON.stringify(users)); }
-let movements = JSON.parse(localStorage.getItem('lab_movements') || '[]');
-function saveMovements() { localStorage.setItem('lab_movements', JSON.stringify(movements)); }
-function fmtDate(d) { return new Date(d).toLocaleDateString('pt-BR') + ' ' + new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+// ── HELPERS ──────────────────────────────────────────
+function fmtDate(d) {
+  const dt = d && d.toDate ? d.toDate() : new Date(d);
+  return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+function setSyncStatus(s) {
+  const dot = document.getElementById('sync-dot'), txt = document.getElementById('sync-text');
+  dot.className = 'sync-dot' + (s==='syncing'?' syncing':s==='error'?' error':'');
+  txt.textContent = s==='ok'?'Sincronizado':s==='syncing'?'Salvando...':'Erro de conexão';
+}
+function showLoading(msg) {
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loading-text').textContent = msg;
+}
+function hideLoading() { document.getElementById('loading-screen').style.display = 'none'; }
 
-// ===================== AUTH =====================
-function simulateGoogle() {
-  document.getElementById('login-user').value = 'admin';
-  document.getElementById('login-pass').value = 'lab2024';
-  doLogin();
+// ── FIREBASE INIT ────────────────────────────────────
+async function connectFirebase() {
+  showLoading('Conectando ao Firebase...');
+  try {
+    const app = initializeApp(FIREBASE_CONFIG);
+    db = getFirestore(app);
+    showLoading('Verificando banco de dados...');
+    const snap = await getDocs(collection(db, 'users'));
+    if (snap.empty) {
+      await addDoc(collection(db, 'users'), {
+        name: 'Administrador', username: 'admin', password: 'lab2024',
+        funcao: 'Administrador', role: 'admin', createdAt: serverTimestamp()
+      });
+    }
+    hideLoading();
+    document.getElementById('auth-screen').style.display = 'flex';
+    startListeners();
+  } catch(e) {
+    hideLoading();
+    document.getElementById('auth-screen').style.display = 'flex';
+    toast('Erro ao conectar: ' + e.message, 'red');
+  }
 }
 
-function doLogin() {
+// ── REAL-TIME LISTENERS ──────────────────────────────
+function startListeners() {
+  onSnapshot(query(collection(db,'products'), orderBy('model')), snap => {
+    products = snap.docs.map(d => ({id:d.id,...d.data()}));
+    if (currentUser) { renderStats(); renderView(); renderManage(); }
+    setSyncStatus('ok');
+    const imp = document.getElementById('import-section');
+    if (imp) imp.style.display = products.length === 0 ? 'block' : 'none';
+  }, () => setSyncStatus('error'));
+
+  onSnapshot(collection(db,'users'), snap => {
+    users = snap.docs.map(d => ({id:d.id,...d.data()}));
+    if (currentUser) renderUsers();
+  });
+}
+
+// ── AUTH ─────────────────────────────────────────────
+window.doLogin = function() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const found = users.find(x => x.username === u && x.password === p);
-  if (!found) {
-    document.getElementById('auth-error').style.display = 'block';
-    return;
-  }
+  if (!found) { document.getElementById('auth-error').style.display = 'block'; return; }
   currentUser = found;
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('user-avatar').textContent = found.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = 'Olá, ' + found.name;
-  document.getElementById('user-funcao-display').textContent = found.funcao || (found.role === 'admin' ? 'Administrador' : found.role === 'editor' ? 'Editor' : '—');
+  document.getElementById('user-funcao-display').textContent = found.funcao || (found.role==='admin'?'Administrador':found.role==='editor'?'Editor':'—');
   document.getElementById('user-badge').innerHTML = found.role === 'admin' ? '<span class="admin-badge">ADMIN</span>' : '';
-  // Show cards based on role
   const isAdmin = found.role === 'admin';
   const isEditor = found.role === 'editor';
-  document.getElementById('card-gerenciador').style.display = (isAdmin || isEditor) ? '' : 'none';
+  document.getElementById('card-gerenciador').style.display = (isAdmin||isEditor) ? '' : 'none';
   document.getElementById('card-usuarios').style.display = isAdmin ? '' : 'none';
-  goHome();
-  renderAll();
-}
+  goHome(); renderAll();
+};
 
-function doLogout() {
+window.doLogout = function() {
   currentUser = null;
-  document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
   document.getElementById('auth-error').style.display = 'none';
-}
+};
 
-// ===================== NAVIGATION =====================
-function goHome() {
+// ── NAVIGATION ───────────────────────────────────────
+window.goHome = function() {
   document.getElementById('page-home').style.display = 'flex';
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
   document.getElementById('btn-back').classList.remove('visible');
-}
-
-function switchTab(tab) {
+};
+window.switchTab = function(tab) {
   document.getElementById('page-home').style.display = 'none';
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-  const target = document.getElementById('page-' + tab);
-  if (target) target.style.display = 'block';
+  const t = document.getElementById('page-' + tab);
+  if (t) t.style.display = 'block';
   document.getElementById('btn-back').classList.add('visible');
+};
+
+// ── RENDER ───────────────────────────────────────────
+function renderAll() { renderStats(); renderView(); renderManage(); renderUsers(); }
+function getFiltered(q) {
+  const s = (q||'').toLowerCase();
+  return products.filter(p => p.code.toLowerCase().includes(s) || p.model.toLowerCase().includes(s));
+}
+function renderStats() {
+  const total = products.length, totalQty = products.reduce((a,b)=>a+(b.qty||0),0), zero = products.filter(p=>(p.qty||0)===0).length;
+  document.getElementById('stats-view').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total de Produtos</div><div class="stat-value blue">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Unidades em Estoque</div><div class="stat-value green">${totalQty}</div></div>
+    <div class="stat-card"><div class="stat-label">Produtos Zerados</div><div class="stat-value" style="color:var(--red)">${zero}</div></div>`;
+}
+function qtyBadge(qty) {
+  const cls = qty===0?'zero':qty<=2?'warn':'ok';
+  return `<span class="qty-badge ${cls}">${qty}</span>`;
+}
+function renderView() {
+  const q = document.getElementById('search-view').value;
+  const data = getFiltered(q);
+  const pages = Math.max(1, Math.ceil(data.length/PER_PAGE));
+  if (pagView > pages) pagView = pages;
+  const slice = data.slice((pagView-1)*PER_PAGE, pagView*PER_PAGE);
+  document.getElementById('tbody-view').innerHTML = slice.length
+    ? slice.map(p=>`<tr style="cursor:pointer" onclick="openProductDetail('${p.id}')" title="Clique para ver histórico"><td><span class="code-cell">${p.code}</span></td><td>${p.model}</td><td>${qtyBadge(p.qty||0)}</td></tr>`).join('')
+    : `<tr class="empty-row"><td colspan="3">Nenhum produto encontrado.</td></tr>`;
+  renderPag('pag-view', pagView, pages, data.length, n=>{pagView=n;renderView();});
+  renderStats();
+}
+function renderManage() {
+  const q = document.getElementById('search-manage').value;
+  const data = getFiltered(q);
+  const pages = Math.max(1, Math.ceil(data.length/PER_PAGE));
+  if (pagManage > pages) pagManage = pages;
+  const slice = data.slice((pagManage-1)*PER_PAGE, pagManage*PER_PAGE);
+  const imp = document.getElementById('import-section');
+  if (imp) imp.style.display = products.length===0 ? 'block' : 'none';
+  document.getElementById('tbody-manage').innerHTML = slice.length
+    ? slice.map(p=>`<tr><td><span class="code-cell">${p.code}</span></td><td>${p.model}</td><td>${qtyBadge(p.qty||0)}</td><td><div class="actions-cell">
+        <button class="btn-action btn-edit" onclick="openEdit('${p.id}')">✏️ Editar</button>
+        <button class="btn-action btn-in" onclick="openEntrada('${p.id}')">📥 Entrada</button>
+        <button class="btn-action btn-out" onclick="openSaida('${p.id}')">📤 Saída</button>
+        <button class="btn-action btn-del" onclick="confirmDel('${p.id}')">🗑 Remover</button>
+      </div></td></tr>`).join('')
+    : `<tr class="empty-row"><td colspan="4">${products.length===0?'Banco vazio — importe os produtos acima.':'Nenhum produto encontrado.'}</td></tr>`;
+  renderPag('pag-manage', pagManage, pages, data.length, n=>{pagManage=n;renderManage();});
+}
+function renderPag(id, cur, total, count, fn) {
+  const el = document.getElementById(id);
+  if (total<=1) { el.innerHTML=''; return; }
+  const start=(cur-1)*PER_PAGE+1, end=Math.min(cur*PER_PAGE,count);
+  let btns='';
+  for(let i=1;i<=total;i++) {
+    if(total>10&&i>3&&i<total-2&&Math.abs(i-cur)>2) { if(i===4) btns+=`<span style="color:var(--muted);padding:0 4px">…</span>`; continue; }
+    btns+=`<button class="btn-page ${i===cur?'active':''}" onclick="(${fn.toString()})(${i})">${i}</button>`;
+  }
+  el.innerHTML=`<span class="pagination-info">Mostrando ${start}–${end} de ${count}</span><div class="pagination-btns">
+    <button class="btn-page" onclick="(${fn.toString()})(${cur-1})" ${cur<=1?'disabled':''}>‹</button>${btns}
+    <button class="btn-page" onclick="(${fn.toString()})(${cur+1})" ${cur>=total?'disabled':''}>›</button></div>`;
+}
+function renderUsers() {
+  const isAdmin = currentUser && currentUser.role==='admin';
+  document.getElementById('users-grid').innerHTML = users.map(u=>`
+    <div class="user-card">
+      <div class="user-info">
+        <div class="user-avatar">${(u.name||'?')[0]}</div>
+        <div>
+          <div class="user-name">${u.name} ${u.role==='admin'?'<span class="admin-badge">ADMIN</span>':u.role==='editor'?'<span class="admin-badge" style="background:rgba(62,207,142,.15);border-color:rgba(62,207,142,.3);color:var(--green)">EDITOR</span>':''}</div>
+          <div class="user-email">${u.funcao||'—'}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div class="user-creds">Login: <span>${u.username}</span> &nbsp;|&nbsp; Senha: <span>${u.password}</span></div>
+        ${u.username!=='admin'&&isAdmin?`<button class="btn-action btn-del" onclick="deleteUser('${u.id}')">🗑 Remover</button>`:''}
+      </div>
+    </div>`).join('');
 }
 
-// ===================== RENDER =====================
-function openProductDetail(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-
-  const hist = movements
-    .filter(m => m.productId === String(id))
-    .sort((a,b) => new Date(b.date) - new Date(a.date));
-
-  const histHTML = hist.length ? hist.map(m => `
-    <div class="history-item">
-      <span class="history-icon">${m.type === 'in' ? '📥' : '📤'}</span>
-      <div class="history-details">
-        <div class="history-action">${m.type === 'in' ? 'Entrada' : 'Saída'}</div>
-        <div class="history-who">por ${m.user || '—'}</div>
-      </div>
-      <span class="history-qty ${m.type}">${m.type === 'in' ? '+' : '−'}${m.qty}</span>
-      <span class="history-date">${fmtDate(m.date + 'T12:00:00')}</span>
-    </div>`).join('')
-    : '<div class="history-empty">Nenhuma movimentação registrada ainda.</div>';
-
+// ── PRODUCT DETAIL ───────────────────────────────────
+window.openProductDetail = async function(id) {
+  const p = products.find(x=>x.id===id); if(!p) return;
   const modal = document.getElementById('modal');
   modal.classList.add('modal-wide');
   openModal(`
@@ -593,266 +1090,133 @@ function openProductDetail(id) {
       <div class="product-detail-badge">${p.code}</div>
       <div class="product-detail-info">
         <div class="product-detail-model">${p.model}</div>
-        <div>${qtyBadge(p.qty)} <span style="font-size:12px;color:var(--muted);margin-left:6px">unidades em estoque</span></div>
+        <div>${qtyBadge(p.qty||0)} <span style="font-size:12px;color:var(--muted);margin-left:6px">unidades em estoque</span></div>
       </div>
     </div>
     <div class="history-title">📋 Histórico de Movimentações</div>
-    <div class="history-list">${histHTML}</div>
-  `);
-}
-
-function renderAll() { renderView(); renderManage(); renderUsers(); renderStats(); }
-
-function getFiltered(search) {
-  const q = search.toLowerCase();
-  return products.filter(p => p.code.toLowerCase().includes(q) || p.model.toLowerCase().includes(q));
-}
-
-function renderStats() {
-  const total = products.length;
-  const totalQty = products.reduce((a,b) => a+b.qty, 0);
-  const zero = products.filter(p => p.qty === 0).length;
-  document.getElementById('stats-view').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total de Produtos</div><div class="stat-value blue">${total}</div></div>
-    <div class="stat-card"><div class="stat-label">Unidades em Estoque</div><div class="stat-value green">${totalQty}</div></div>
-    <div class="stat-card"><div class="stat-label">Produtos Zerados</div><div class="stat-value" style="color:var(--red)">${zero}</div></div>
-  `;
-}
-
-function qtyBadge(qty) {
-  const cls = qty === 0 ? 'zero' : qty <= 2 ? 'warn' : 'ok';
-  return `<span class="qty-badge ${cls}">${qty}</span>`;
-}
-
-function renderView() {
-  const q = document.getElementById('search-view').value;
-  const data = getFiltered(q);
-  const total = data.length;
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  if (pagView > pages) pagView = pages;
-  const slice = data.slice((pagView-1)*PER_PAGE, pagView*PER_PAGE);
-  const tbody = document.getElementById('tbody-view');
-  tbody.innerHTML = slice.length ? slice.map(p => `
-    <tr style="cursor:pointer" onclick="openProductDetail('${p.id}')" title="Clique para ver histórico">
-      <td><span class="code-cell">${p.code}</span></td>
-      <td>${p.model}</td>
-      <td>${qtyBadge(p.qty)}</td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="3">Nenhum produto encontrado.</td></tr>`;
-  renderPag('pag-view', pagView, pages, n => { pagView = n; renderView(); });
-  renderStats();
-}
-
-function renderManage() {
-  const q = document.getElementById('search-manage').value;
-  const data = getFiltered(q);
-  const total = data.length;
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  if (pagManage > pages) pagManage = pages;
-  const slice = data.slice((pagManage-1)*PER_PAGE, pagManage*PER_PAGE);
-  const tbody = document.getElementById('tbody-manage');
-  tbody.innerHTML = slice.length ? slice.map(p => `
-    <tr>
-      <td><span class="code-cell">${p.code}</span></td>
-      <td>${p.model}</td>
-      <td>${qtyBadge(p.qty)}</td>
-      <td><div class="actions-cell">
-        <button class="btn-action btn-edit" onclick="openEdit('${p.id}')">✏️ Editar</button>
-        <button class="btn-action btn-in" onclick="openEntrada('${p.id}')">📥 Entrada</button>
-        <button class="btn-action btn-out" onclick="openSaida('${p.id}')">📤 Saída</button>
-        <button class="btn-action btn-del" onclick="confirmDel('${p.id}')">🗑 Remover</button>
-      </div></td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="4">Nenhum produto encontrado.</td></tr>`;
-  renderPag('pag-manage', pagManage, pages, n => { pagManage = n; renderManage(); });
-}
-
-function renderPag(id, cur, total, fn) {
-  const el = document.getElementById(id);
-  if (total <= 1) { el.innerHTML = ''; return; }
-  const start = (cur-1)*PER_PAGE+1;
-  const end = Math.min(cur*PER_PAGE, products.length);
-  let btns = '';
-  for (let i=1; i<=total; i++) {
-    if (total > 10 && i > 3 && i < total-2 && Math.abs(i-cur) > 2) {
-      if (i === 4) btns += `<span style="color:var(--muted);padding:0 4px">…</span>`;
-      continue;
-    }
-    btns += `<button class="btn-page ${i===cur?'active':''}" onclick="(${fn.toString()})(${i})">${i}</button>`;
-  }
-  el.innerHTML = `<span class="pagination-info">Mostrando ${start}–${end} de ${products.length}</span><div class="pagination-btns">
-    <button class="btn-page" onclick="(${fn.toString()})(${cur-1})" ${cur<=1?'disabled':''}>‹</button>
-    ${btns}
-    <button class="btn-page" onclick="(${fn.toString()})(${cur+1})" ${cur>=total?'disabled':''}>›</button>
-  </div>`;
-}
-
-function renderUsers() {
-  const grid = document.getElementById('users-grid');
-  grid.innerHTML = users.map(u => `
-    <div class="user-card">
-      <div class="user-info">
-        <div class="user-avatar">${u.name[0]}</div>
-        <div>
-          <div class="user-name">${u.name} ${u.role==='admin'?'<span class="admin-badge">ADMIN</span>':u.role==='editor'?'<span class="admin-badge" style="background:rgba(62,207,142,.15);border-color:rgba(62,207,142,.3);color:var(--green)">EDITOR</span>':''}</div>
-          <div class="user-email">${u.funcao || '—'}</div>
+    <div class="history-list" id="history-list"><div class="history-empty">Carregando...</div></div>`);
+  try {
+    const snap = await getDocs(query(collection(db,'movements'), where('productId','==',id), orderBy('date','desc')));
+    const items = snap.docs.map(d=>d.data());
+    const listEl = document.getElementById('history-list');
+    if (!listEl) return;
+    listEl.innerHTML = items.length ? items.map(m=>`
+      <div class="history-item">
+        <span class="history-icon">${m.type==='in'?'📥':'📤'}</span>
+        <div class="history-details">
+          <div class="history-action">${m.type==='in'?'Entrada':'Saída'}</div>
+          <div class="history-who">por ${m.user||'—'}</div>
         </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <div class="user-creds">Login: <span>${u.username}</span> &nbsp;|&nbsp; Senha: <span>${u.password}</span></div>
-        ${u.id !== 1 ? `<button class="btn-action btn-del" onclick="deleteUser(${u.id})">🗑 Remover</button>` : ''}
-      </div>
-    </div>`).join('');
-}
+        <span class="history-qty ${m.type}">${m.type==='in'?'+':'−'}${m.qty}</span>
+        <span class="history-date">${fmtDate(m.date)}</span>
+      </div>`).join('') : '<div class="history-empty">Nenhuma movimentação registrada ainda.</div>';
+  } catch(e) {
+    const listEl = document.getElementById('history-list');
+    if (listEl) listEl.innerHTML = '<div class="history-empty">Erro ao carregar histórico.</div>';
+  }
+};
 
-// ===================== MODALS =====================
-function openModal(html) {
-  document.getElementById('modal-content').innerHTML = html;
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  document.getElementById('modal').classList.remove('modal-wide');
-}
+// ── MODALS ───────────────────────────────────────────
+function openModal(html) { document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').classList.add('open'); }
+window.closeModal = function() { document.getElementById('modal-overlay').classList.remove('open'); document.getElementById('modal').classList.remove('modal-wide'); };
 
-function openModalNovoProduto() {
-  openModal(`
-    <div class="modal-title">Novo Produto</div>
-    <div class="modal-sub">Adicione um novo produto ao laboratório.</div>
+window.openModalNovoProduto = function() {
+  openModal(`<div class="modal-title">Novo Produto</div><div class="modal-sub">Adicione um novo produto ao laboratório.</div>
     <div class="form-group"><label>Código</label><input id="m-code" placeholder="ex: 12345-01" /></div>
     <div class="form-group"><label>Modelo / Descrição</label><input id="m-model" placeholder="ex: CAFETEIRA C-08 220V" /></div>
     <div class="form-group"><label>Quantidade Inicial</label><input id="m-qty" type="number" min="0" value="0" /></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" onclick="confirmNovoProduto()">Adicionar Produto</button>
-    </div>`);
-}
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmNovoProduto()">Adicionar Produto</button></div>`);
+};
+window.confirmNovoProduto = async function() {
+  const code=document.getElementById('m-code').value.trim(), model=document.getElementById('m-model').value.trim(), qty=parseInt(document.getElementById('m-qty').value)||0;
+  if(!code||!model) { toast('Preencha todos os campos!','red'); return; }
+  setSyncStatus('syncing');
+  await addDoc(collection(db,'products'),{code,model,qty,createdAt:serverTimestamp()});
+  closeModal(); toast('Produto adicionado!','green');
+};
 
-function confirmNovoProduto() {
-  const code = document.getElementById('m-code').value.trim();
-  const model = document.getElementById('m-model').value.trim();
-  const qty = parseInt(document.getElementById('m-qty').value) || 0;
-  if (!code || !model) { toast('Preencha todos os campos!', 'red'); return; }
-  products.push({id: Date.now()+Math.random(), code, model, qty});
-  saveProducts(); closeModal(); renderAll();
-  toast('Produto adicionado com sucesso!', 'green');
-}
-
-function openEdit(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-  openModal(`
-    <div class="modal-title">Editar Produto</div>
-    <div class="modal-sub"><span class="code-cell">${p.code}</span></div>
+window.openEdit = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  openModal(`<div class="modal-title">Editar Produto</div><div class="modal-sub"><span class="code-cell">${p.code}</span></div>
     <div class="form-group"><label>Código</label><input id="m-code" value="${p.code}" /></div>
     <div class="form-group"><label>Modelo / Descrição</label><input id="m-model" value="${p.model}" /></div>
-    <div class="form-group"><label>Quantidade Atual</label><input id="m-qty" type="number" min="0" value="${p.qty}" /></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" onclick="confirmEdit('${id}')">Salvar Alterações</button>
-    </div>`);
-}
+    <div class="form-group"><label>Quantidade Atual</label><input id="m-qty" type="number" min="0" value="${p.qty||0}" /></div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmEdit('${id}')">Salvar Alterações</button></div>`);
+};
+window.confirmEdit = async function(id) {
+  const code=document.getElementById('m-code').value.trim(), model=document.getElementById('m-model').value.trim(), qty=parseInt(document.getElementById('m-qty').value)||0;
+  setSyncStatus('syncing');
+  await updateDoc(doc(db,'products',id),{code,model,qty});
+  closeModal(); toast('Produto atualizado!','green');
+};
 
-function confirmEdit(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-  p.code = document.getElementById('m-code').value.trim();
-  p.model = document.getElementById('m-model').value.trim();
-  p.qty = parseInt(document.getElementById('m-qty').value) || 0;
-  saveProducts(); closeModal(); renderAll();
-  toast('Produto atualizado!', 'green');
-}
-
-function openEntrada(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-  const today = new Date().toISOString().slice(0,10);
-  openModal(`
-    <div class="modal-title">📥 Entrada de Produto</div>
-    <div class="modal-sub">${p.model}</div>
-    <div class="saldo-display">
-      <div class="saldo-label">Saldo Atual</div>
-      <div class="saldo-value" style="color:var(--green)">${p.qty}</div>
-    </div>
+window.openEntrada = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const today=new Date().toISOString().slice(0,10);
+  openModal(`<div class="modal-title">📥 Entrada de Produto</div><div class="modal-sub">${p.model}</div>
+    <div class="saldo-display"><div class="saldo-label">Saldo Atual</div><div class="saldo-value" style="color:var(--green)">${p.qty||0}</div></div>
     <div class="form-group"><label>Quantidade de Entrada</label><input id="m-qty" type="number" min="1" value="1" /></div>
     <div class="form-group"><label>Data da Entrada</label><input id="m-date" type="date" value="${today}" /></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--green),#2ab87a)" onclick="confirmEntrada('${id}')">Confirmar Entrada</button>
-    </div>`);
-}
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--green),#2ab87a)" onclick="confirmEntrada('${id}')">Confirmar Entrada</button></div>`);
+};
+window.confirmEntrada = async function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const n=parseInt(document.getElementById('m-qty').value)||0, dateVal=document.getElementById('m-date').value;
+  if(n<=0) { toast('Quantidade inválida!','red'); return; }
+  if(!dateVal) { toast('Informe a data!','red'); return; }
+  setSyncStatus('syncing');
+  const batch=writeBatch(db);
+  batch.update(doc(db,'products',id),{qty:(p.qty||0)+n});
+  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'in',qty:n,date:new Date(dateVal+'T12:00:00'),user:currentUser.name,createdAt:serverTimestamp()});
+  await batch.commit();
+  closeModal(); toast(`+${n} unidades adicionadas. Novo saldo: ${(p.qty||0)+n}`,'green');
+};
 
-function confirmEntrada(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-  const n = parseInt(document.getElementById('m-qty').value) || 0;
-  const dateVal = document.getElementById('m-date').value;
-  if (n <= 0) { toast('Quantidade inválida!', 'red'); return; }
-  if (!dateVal) { toast('Informe a data!', 'red'); return; }
-  p.qty += n;
-  movements.push({ id: Date.now(), productId: String(p.id), productCode: p.code, productModel: p.model, type: 'in', qty: n, date: dateVal, user: currentUser ? currentUser.name : '—' });
-  saveProducts(); saveMovements(); closeModal(); renderAll();
-  toast(`+${n} unidades adicionadas. Saldo: ${p.qty}`, 'green');
-}
-
-function openSaida(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-  const today = new Date().toISOString().slice(0,10);
-  openModal(`
-    <div class="modal-title">📤 Retirada de Produto</div>
-    <div class="modal-sub">${p.model}</div>
-    <div class="saldo-display">
-      <div class="saldo-label">Saldo Atual</div>
-      <div class="saldo-value" style="color:var(--yellow)">${p.qty}</div>
-    </div>
-    <div class="form-group"><label>Quantidade Retirada</label><input id="m-qty" type="number" min="1" max="${p.qty}" value="1" /></div>
+window.openSaida = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const today=new Date().toISOString().slice(0,10);
+  openModal(`<div class="modal-title">📤 Retirada de Produto</div><div class="modal-sub">${p.model}</div>
+    <div class="saldo-display"><div class="saldo-label">Saldo Atual</div><div class="saldo-value" style="color:var(--yellow)">${p.qty||0}</div></div>
+    <div class="form-group"><label>Quantidade Retirada</label><input id="m-qty" type="number" min="1" max="${p.qty||0}" value="1" /></div>
     <div class="form-group"><label>Data da Retirada</label><input id="m-date" type="date" value="${today}" /></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--yellow),#e5a820);color:#111" onclick="confirmSaida('${id}')">Confirmar Retirada</button>
-    </div>`);
-}
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--yellow),#e5a820);color:#111" onclick="confirmSaida('${id}')">Confirmar Retirada</button></div>`);
+};
+window.confirmSaida = async function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const n=parseInt(document.getElementById('m-qty').value)||0, dateVal=document.getElementById('m-date').value;
+  if(n<=0) { toast('Quantidade inválida!','red'); return; }
+  if(!dateVal) { toast('Informe a data!','red'); return; }
+  if(n>(p.qty||0)) { toast(`Saldo insuficiente! Disponível: ${p.qty||0}`,'red'); return; }
+  setSyncStatus('syncing');
+  const batch=writeBatch(db);
+  batch.update(doc(db,'products',id),{qty:(p.qty||0)-n});
+  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'out',qty:n,date:new Date(dateVal+'T12:00:00'),user:currentUser.name,createdAt:serverTimestamp()});
+  await batch.commit();
+  closeModal(); toast(`−${n} unidades retiradas. Saldo restante: ${(p.qty||0)-n}`,'green');
+};
 
-function confirmSaida(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-  const n = parseInt(document.getElementById('m-qty').value) || 0;
-  const dateVal = document.getElementById('m-date').value;
-  if (n <= 0) { toast('Quantidade inválida!', 'red'); return; }
-  if (!dateVal) { toast('Informe a data!', 'red'); return; }
-  if (n > p.qty) { toast(`Saldo insuficiente! Disponível: ${p.qty}`, 'red'); return; }
-  p.qty -= n;
-  movements.push({ id: Date.now(), productId: String(p.id), productCode: p.code, productModel: p.model, type: 'out', qty: n, date: dateVal, user: currentUser ? currentUser.name : '—' });
-  saveProducts(); saveMovements(); closeModal(); renderAll();
-  toast(`−${n} unidades retiradas. Saldo restante: ${p.qty}`, 'green');
-}
-
-function confirmDel(id) {
-  const p = products.find(x => String(x.id) === String(id));
-  if (!p) return;
-  openModal(`
-    <div class="modal-title">🗑 Remover Produto</div>
-    <div class="modal-sub">Tem certeza que deseja remover este produto? Esta ação não pode ser desfeita.</div>
+window.confirmDel = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  openModal(`<div class="modal-title">🗑 Remover Produto</div><div class="modal-sub">Esta ação não pode ser desfeita.</div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
       <div style="font-family:var(--mono);color:var(--accent);font-size:13px;margin-bottom:4px">${p.code}</div>
       <div style="font-size:14px">${p.model}</div>
-      <div style="color:var(--muted);font-size:12px;margin-top:4px">Quantidade atual: ${p.qty}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:4px">Quantidade atual: ${p.qty||0}</div>
     </div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" style="background:var(--red)" onclick="doDelete('${id}')">Sim, Remover</button>
-    </div>`);
-}
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" style="background:var(--red)" onclick="doDelete('${id}')">Sim, Remover</button></div>`);
+};
+window.doDelete = async function(id) {
+  setSyncStatus('syncing');
+  await deleteDoc(doc(db,'products',id));
+  closeModal(); toast('Produto removido.','red');
+};
 
-function doDelete(id) {
-  products = products.filter(x => String(x.id) !== String(id));
-  saveProducts(); closeModal(); renderAll();
-  toast('Produto removido.', 'red');
-}
-
-function openModalNovoUsuario() {
-  openModal(`
-    <div class="modal-title">Novo Usuário</div>
-    <div class="modal-sub">Crie credenciais de acesso para um novo colaborador.</div>
+// ── USUÁRIOS ─────────────────────────────────────────
+window.openModalNovoUsuario = function() {
+  openModal(`<div class="modal-title">Novo Usuário</div><div class="modal-sub">Crie credenciais de acesso para um novo colaborador.</div>
     <div class="form-group"><label>Nome Completo</label><input id="m-name" placeholder="ex: João Silva" /></div>
     <div class="form-group"><label>Usuário (login)</label><input id="m-user" placeholder="ex: joao.silva" /></div>
     <div class="form-group"><label>Senha</label><input id="m-pw" type="text" placeholder="mínimo 3 caracteres" /></div>
@@ -863,33 +1227,46 @@ function openModalNovoUsuario() {
         <option value="editor">Editor — Produtos no LAB e Gerenciador</option>
       </select>
     </div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" onclick="confirmNovoUsuario()">Criar Usuário</button>
-    </div>`);
-}
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" onclick="confirmNovoUsuario()">Criar Usuário</button></div>`);
+};
+window.confirmNovoUsuario = async function() {
+  const name=document.getElementById('m-name').value.trim(), username=document.getElementById('m-user').value.trim(),
+        password=document.getElementById('m-pw').value, funcao=document.getElementById('m-funcao').value.trim(),
+        role=document.getElementById('m-role').value;
+  if(!name||!username||!password) { toast('Preencha todos os campos!','red'); return; }
+  if(password.length<3) { toast('Senha muito curta (mín. 3 caracteres)!','red'); return; }
+  if(users.find(u=>u.username===username)) { toast('Usuário já existe!','red'); return; }
+  await addDoc(collection(db,'users'),{name,username,password,funcao,role,createdAt:serverTimestamp()});
+  closeModal(); toast('Usuário criado com sucesso!','green');
+};
+window.deleteUser = async function(id) {
+  await deleteDoc(doc(db,'users',id));
+  toast('Usuário removido.','red');
+};
 
-function confirmNovoUsuario() {
-  const name = document.getElementById('m-name').value.trim();
-  const username = document.getElementById('m-user').value.trim();
-  const password = document.getElementById('m-pw').value;
-  const funcao = document.getElementById('m-funcao').value.trim();
-  const role = document.getElementById('m-role').value;
-  if (!name || !username || !password) { toast('Preencha todos os campos!', 'red'); return; }
-  if (password.length < 3) { toast('Senha muito curta (mín. 3 caracteres)!', 'red'); return; }
-  if (users.find(u => u.username === username)) { toast('Usuário já existe!', 'red'); return; }
-  users.push({id: Date.now(), name, username, password, funcao, role});
-  saveUsers(); closeModal(); renderUsers();
-  toast('Usuário criado com sucesso!', 'green');
-}
+// ── IMPORTAR DADOS INICIAIS ──────────────────────────
+window.importInitialData = async function() {
+  const btn = document.querySelector('.btn-import');
+  btn.disabled=true; btn.textContent='Importando...';
+  document.getElementById('import-progress').style.display='block';
+  const total=INITIAL_PRODUCTS.length; let done=0;
+  for(let i=0;i<total;i+=400) {
+    const batch=writeBatch(db);
+    INITIAL_PRODUCTS.slice(i,i+400).forEach(([code,model,qty])=>{
+      batch.set(doc(collection(db,'products')),{code,model,qty,createdAt:serverTimestamp()});
+    });
+    await batch.commit();
+    done=Math.min(i+400,total);
+    document.getElementById('progress-bar').style.width=(done/total*100)+'%';
+    document.getElementById('progress-text').textContent=`${done} / ${total} produtos importados...`;
+  }
+  toast(total+' produtos importados!','green');
+  document.getElementById('import-progress').style.display='none';
+  btn.disabled=false;
+};
 
-function deleteUser(id) {
-  users = users.filter(u => u.id !== id);
-  saveUsers(); renderUsers();
-  toast('Usuário removido.', 'red');
-}
-
-// ===================== RELATÓRIO PDF =====================
+// ── RELATÓRIO PDF ────────────────────────────────────
 function gerarRelatorio() {
   const q = document.getElementById('search-manage').value.trim();
   const data = getFiltered(q);
@@ -1004,14 +1381,15 @@ function gerarRelatorio() {
   win.document.close();
 }
 
-// ===================== TOAST =====================
-function toast(msg, color='green') {
-  const el = document.createElement('div');
-  el.className = `toast ${color}`;
-  el.innerHTML = `<span style="font-size:16px">${color==='green'?'✅':'❌'}</span> ${msg}`;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
-}
+// ── TOAST ────────────────────────────────────────────
+window.toast = function(msg, color='green') {
+  const el=document.createElement('div'); el.className=`toast ${color}`;
+  el.innerHTML=`<span style="font-size:16px">${color==='green'?'✅':'❌'}</span> ${msg}`;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),3500);
+};
+
+// ── INIT ─────────────────────────────────────────────
+connectFirebase();
 </script>
 </body>
 </html>
