@@ -1049,18 +1049,21 @@ function renderManage() {
     : `<tr class="empty-row"><td colspan="4">${products.length===0?'Banco vazio — importe os produtos acima.':'Nenhum produto encontrado.'}</td></tr>`;
   renderPag('pag-manage', pagManage, pages, data.length, n=>{pagManage=n;renderManage();});
 }
+// Store pagination callbacks globally so inline onclick can reach them from module scope
+window.__pagFns = {};
 function renderPag(id, cur, total, count, fn) {
   const el = document.getElementById(id);
   if (total<=1) { el.innerHTML=''; return; }
+  window.__pagFns[id] = fn;
   const start=(cur-1)*PER_PAGE+1, end=Math.min(cur*PER_PAGE,count);
   let btns='';
   for(let i=1;i<=total;i++) {
     if(total>10&&i>3&&i<total-2&&Math.abs(i-cur)>2) { if(i===4) btns+=`<span style="color:var(--muted);padding:0 4px">…</span>`; continue; }
-    btns+=`<button class="btn-page ${i===cur?'active':''}" onclick="(${fn.toString()})(${i})">${i}</button>`;
+    btns+=`<button class="btn-page ${i===cur?'active':''}" onclick="window.__pagFns['${id}'](${i})">${i}</button>`;
   }
   el.innerHTML=`<span class="pagination-info">Mostrando ${start}–${end} de ${count}</span><div class="pagination-btns">
-    <button class="btn-page" onclick="(${fn.toString()})(${cur-1})" ${cur<=1?'disabled':''}>‹</button>${btns}
-    <button class="btn-page" onclick="(${fn.toString()})(${cur+1})" ${cur>=total?'disabled':''}>›</button></div>`;
+    <button class="btn-page" onclick="window.__pagFns['${id}'](${cur-1})" ${cur<=1?'disabled':''}>‹</button>${btns}
+    <button class="btn-page" onclick="window.__pagFns['${id}'](${cur+1})" ${cur>=total?'disabled':''}>›</button></div>`;
 }
 function renderUsers() {
   const isAdmin = currentUser && currentUser.role==='admin';
