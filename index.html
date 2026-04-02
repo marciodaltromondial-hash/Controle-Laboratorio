@@ -1099,8 +1099,13 @@ window.openProductDetail = async function(id) {
     <div class="history-title">📋 Histórico de Movimentações</div>
     <div class="history-list" id="history-list"><div class="history-empty">Carregando...</div></div>`);
   try {
-    const snap = await getDocs(query(collection(db,'movements'), where('productId','==',id), orderBy('date','desc')));
-    const items = snap.docs.map(d=>d.data());
+    const snap = await getDocs(query(collection(db,'movements'), where('productId','==',id)));
+    const items = snap.docs.map(d=>d.data())
+      .sort((a,b) => {
+        const da = a.date && a.date.toDate ? a.date.toDate() : new Date(a.date || 0);
+        const db_ = b.date && b.date.toDate ? b.date.toDate() : new Date(b.date || 0);
+        return db_ - da;
+      });
     const listEl = document.getElementById('history-list');
     if (!listEl) return;
     listEl.innerHTML = items.length ? items.map(m=>`
