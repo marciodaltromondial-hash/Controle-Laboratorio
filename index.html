@@ -470,7 +470,7 @@
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input type="text" id="search-view" placeholder="Buscar por código ou modelo..." oninput="renderView()">
+        <input type="text" id="search-view" placeholder="Buscar por código ou modelo..." >
       </div>
     </div>
     <div class="table-wrap">
@@ -502,9 +502,9 @@
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input type="text" id="search-manage" placeholder="Buscar por código ou modelo..." oninput="renderManage()">
+        <input type="text" id="search-manage" placeholder="Buscar por código ou modelo..." >
       </div>
-      <button class="btn-pdf" onclick="gerarRelatorio()">🖨️ Gerar Relatório PDF</button>
+      <button class="btn-pdf" id="btn-pdf">🖨️ Gerar Relatório PDF</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -1392,6 +1392,11 @@ window.toast = function(msg, color='green') {
 };
 
 // ── INIT ─────────────────────────────────────────────
+// Search listeners — attached here to work inside module scope
+document.getElementById('search-view').addEventListener('input', () => { pagView = 1; renderView(); });
+document.getElementById('search-manage').addEventListener('input', () => { pagManage = 1; renderManage(); });
+document.getElementById('btn-pdf').addEventListener('click', () => gerarRelatorio());
+
 connectFirebase();
 </script>
 </body>
