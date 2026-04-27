@@ -214,6 +214,16 @@
   table { width: 100%; border-collapse: collapse; }
   thead { background: var(--surface2); }
   th { padding: 14px 20px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  th.sortable { cursor: pointer; user-select: none; transition: color .15s; }
+  th.sortable:hover { color: var(--text); }
+  th.sort-asc, th.sort-desc { color: var(--accent); }
+  th.sort-asc::after  { content: ' ↑'; font-size: 10px; }
+  th.sort-desc::after { content: ' ↓'; font-size: 10px; }
+  th.sortable { cursor: pointer; user-select: none; transition: color .15s; }
+  th.sortable:hover { color: var(--text); }
+  th.sort-active { color: var(--accent) !important; }
+  .sort-arrow { opacity: .35; font-size: 10px; margin-left: 4px; transition: opacity .15s; display: inline-block; }
+  th.sort-active .sort-arrow { opacity: 1; }
   td { padding: 13px 20px; font-size: 14px; border-top: 1px solid var(--border); }
   tr:hover td { background: rgba(255,255,255,.02); }
   .code-cell { font-family: var(--mono); font-size: 12px; color: var(--accent); background: rgba(79,142,247,.1); padding: 4px 8px; border-radius: 6px; display: inline-block; }
@@ -387,6 +397,37 @@
   .progress-bar { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:3px; transition:width .3s; }
   .progress-text { font-size:12px; color:var(--muted); font-family:var(--mono); }
 
+
+  /* HISTORICO GERAL */
+  .btn-historico {
+    padding: 10px 18px; background: none;
+    border: 1px solid rgba(124,92,252,.5); color: var(--accent2);
+    border-radius: 10px; font-family: var(--font); font-size: 13px;
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+    transition: all .2s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-historico:hover { background: rgba(124,92,252,.1); border-color: var(--accent2); transform: translateY(-1px); }
+  .hist-filters { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+  .hist-filter-select {
+    padding: 9px 14px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; color: var(--text); font-family: var(--font); font-size: 13px;
+    outline: none; cursor: pointer; transition: border-color .2s;
+  }
+  .hist-filter-select:focus { border-color: var(--accent); }
+  .hist-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:24px; }
+  .hist-stat { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; }
+  .hist-stat-label { font-size:10px; font-weight:700; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-bottom:6px; }
+  .hist-stat-value { font-size:26px; font-weight:800; }
+  .hist-empty { text-align:center; padding:60px; color:var(--muted); font-size:14px; }
+  .hist-loading { text-align:center; padding:60px; color:var(--muted); font-size:14px; }
+  .hist-table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .hist-table-wrap table { width:100%; border-collapse:collapse; }
+  .hist-table-wrap thead { background:var(--surface2); }
+  .hist-table-wrap th { padding:12px 18px; text-align:left; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+  .hist-table-wrap td { padding:12px 18px; font-size:13px; border-top:1px solid var(--border); }
+  .hist-table-wrap tr:hover td { background:rgba(255,255,255,.02); }
+  .hist-badge-in  { background:rgba(62,207,142,.15); color:var(--green); font-family:var(--mono); font-size:12px; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .hist-badge-out { background:rgba(247,195,79,.15);  color:var(--yellow); font-family:var(--mono); font-size:12px; font-weight:700; padding:3px 9px; border-radius:20px; }
 </style>
 </head>
 <body>
@@ -465,6 +506,7 @@
       <div>
         <div class="page-title">Produtos no LAB <small>Clique em um produto para ver o histórico de movimentações</small></div>
       </div>
+      <button class="btn-historico" id="btn-historico-geral">📋 Histórico Geral</button>
     </div>
     <div class="stats-row" id="stats-view"></div>
     <div class="toolbar">
@@ -475,11 +517,55 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Código</th><th>Modelo</th><th>Qtd. Atual</th></tr></thead>
+        <thead><tr>
+  <th class="sortable" id="th-view-code"  data-sort="view" data-field="code">Código ↕</th>
+  <th class="sortable" id="th-view-model" data-sort="view" data-field="model">Modelo ↕</th>
+  <th>Qtd. Atual</th>
+</tr></thead>
         <tbody id="tbody-view"></tbody>
       </table>
       <div class="pagination" id="pag-view"></div>
     </div>
+  </div>
+
+  <!-- PAGE: HISTÓRICO GERAL -->
+  <div class="page" id="page-historico">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Histórico Geral <small>Todas as movimentações de entrada e saída</small></div>
+      </div>
+      <button class="btn-historico" id="btn-back-historico">← Voltar para Produtos</button>
+    </div>
+    <div class="hist-stats" id="hist-stats"></div>
+    <div class="hist-filters">
+      <div class="search-wrap" style="min-width:240px">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-hist" placeholder="Buscar por código ou modelo...">
+      </div>
+      <select class="hist-filter-select" id="filter-hist-type">
+        <option value="">Entrada e Saída</option>
+        <option value="in">Somente Entradas</option>
+        <option value="out">Somente Saídas</option>
+      </select>
+      <select class="hist-filter-select" id="filter-hist-sort">
+        <option value="desc">Mais recentes primeiro</option>
+        <option value="asc">Mais antigos primeiro</option>
+      </select>
+    </div>
+    <div class="hist-table-wrap">
+      <table>
+        <thead><tr>
+          <th>Data</th>
+          <th>Tipo</th>
+          <th>Código</th>
+          <th>Modelo</th>
+          <th>Qtd.</th>
+          <th>Usuário</th>
+        </tr></thead>
+        <tbody id="tbody-hist"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pag-hist"></div>
   </div>
 
   <!-- PAGE: GERENCIADOR -->
@@ -508,7 +594,11 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Código</th><th>Modelo</th><th>Saldo</th><th>Ações</th></tr></thead>
+        <thead><tr>
+  <th class="sortable" id="th-manage-code"  data-sort="manage" data-field="code">Código ↕</th>
+  <th class="sortable" id="th-manage-model" data-sort="manage" data-field="model">Modelo ↕</th>
+  <th>Saldo</th><th>Ações</th>
+</tr></thead>
         <tbody id="tbody-manage"></tbody>
       </table>
       <div class="pagination" id="pag-manage"></div>
@@ -899,7 +989,11 @@ const INITIAL_PRODUCTS = [
 // ── STATE ────────────────────────────────────────────
 let db = null, products = [], users = [], currentUser = null;
 let pagView = 1, pagManage = 1;
+
 const PER_PAGE = 25;
+// Sort state for each table
+let sortView   = { field: 'code', dir: 'asc' };
+let sortManage = { field: 'code', dir: 'asc' };
 
 // ── HELPERS ──────────────────────────────────────────
 function fmtDate(d) {
@@ -1004,6 +1098,32 @@ window.switchTab = function(tab) {
 
 // ── RENDER ───────────────────────────────────────────
 function renderAll() { renderStats(); renderView(); renderManage(); renderUsers(); }
+function getSorted(data, sort) {
+  return [...data].sort((a, b) => {
+    const va = (a[sort.field]||'').toString().toLowerCase();
+    const vb = (b[sort.field]||'').toString().toLowerCase();
+    return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+}
+
+function updateSortHeaders(prefix, sort) {
+  const labels = { code: 'Código', model: 'Modelo' };
+  ['code','model'].forEach(f => {
+    const th = document.getElementById(`th-${prefix}-${f}`);
+    if (!th) return;
+    th.className = 'sortable';
+    if (sort.field === f) {
+      th.classList.add(sort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+      th.textContent = labels[f] + (sort.dir === 'asc' ? ' ↑' : ' ↓');
+    } else {
+      th.textContent = labels[f] + ' ↕';
+    }
+    // Restore data attributes after textContent change
+    th.dataset.sort = prefix;
+    th.dataset.field = f;
+  });
+}
+
 function getFiltered(q) {
   const s = (q||'').toLowerCase();
   return products.filter(p => p.code.toLowerCase().includes(s) || p.model.toLowerCase().includes(s));
@@ -1021,7 +1141,8 @@ function qtyBadge(qty) {
 }
 function renderView() {
   const q = document.getElementById('search-view').value;
-  const data = getFiltered(q);
+  const data = getSorted(getFiltered(q), sortView);
+  updateSortHeaders('view', sortView);
   const pages = Math.max(1, Math.ceil(data.length/PER_PAGE));
   if (pagView > pages) pagView = pages;
   const slice = data.slice((pagView-1)*PER_PAGE, pagView*PER_PAGE);
@@ -1033,7 +1154,8 @@ function renderView() {
 }
 function renderManage() {
   const q = document.getElementById('search-manage').value;
-  const data = getFiltered(q);
+  const data = getSorted(getFiltered(q), sortManage);
+  updateSortHeaders('manage', sortManage);
   const pages = Math.max(1, Math.ceil(data.length/PER_PAGE));
   if (pagManage > pages) pagManage = pages;
   const slice = data.slice((pagManage-1)*PER_PAGE, pagManage*PER_PAGE);
@@ -1389,6 +1511,84 @@ function gerarRelatorio() {
   win.document.close();
 }
 
+// ── HISTÓRICO GERAL ──────────────────────────────────
+let allMovements = [];
+let pagHist = 1;
+const PER_PAGE_HIST = 30;
+
+async function loadHistoricoGeral() {
+  document.getElementById('tbody-hist').innerHTML = '<tr><td colspan="6" class="hist-loading">⏳ Carregando histórico...</td></tr>';
+  document.getElementById('hist-stats').innerHTML = '';
+  try {
+    const snap = await getDocs(collection(db, 'movements'));
+    allMovements = snap.docs.map(d => d.data());
+    renderHistorico();
+  } catch(e) {
+    document.getElementById('tbody-hist').innerHTML = '<tr><td colspan="6" class="hist-empty">Erro ao carregar: ' + e.message + '</td></tr>';
+  }
+}
+
+function getFilteredHist() {
+  const q     = (document.getElementById('search-hist').value || '').toLowerCase();
+  const type  = document.getElementById('filter-hist-type').value;
+  const order = document.getElementById('filter-hist-sort').value;
+
+  let data = allMovements.filter(m => {
+    const matchQ    = !q || (m.productCode||'').toLowerCase().includes(q) || (m.productModel||'').toLowerCase().includes(q);
+    const matchType = !type || m.type === type;
+    return matchQ && matchType;
+  });
+
+  data.sort((a, b) => {
+    const da = a.date && a.date.toDate ? a.date.toDate() : new Date(a.date || 0);
+    const db_ = b.date && b.date.toDate ? b.date.toDate() : new Date(b.date || 0);
+    return order === 'asc' ? da - db_ : db_ - da;
+  });
+
+  return data;
+}
+
+function renderHistorico() {
+  const data = getFilteredHist();
+  const totalEntradas = data.filter(m => m.type === 'in').reduce((a,m) => a + (m.qty||0), 0);
+  const totalSaidas   = data.filter(m => m.type === 'out').reduce((a,m) => a + (m.qty||0), 0);
+
+  // Stats
+  document.getElementById('hist-stats').innerHTML = `
+    <div class="hist-stat"><div class="hist-stat-label">Total de Registros</div><div class="hist-stat-value" style="color:var(--accent)">${data.length}</div></div>
+    <div class="hist-stat"><div class="hist-stat-label">Unidades Entrada</div><div class="hist-stat-value" style="color:var(--green)">+${totalEntradas}</div></div>
+    <div class="hist-stat"><div class="hist-stat-label">Unidades Saída</div><div class="hist-stat-value" style="color:var(--yellow)">−${totalSaidas}</div></div>
+  `;
+
+  // Table
+  const pages = Math.max(1, Math.ceil(data.length / PER_PAGE_HIST));
+  if (pagHist > pages) pagHist = pages;
+  const slice = data.slice((pagHist-1)*PER_PAGE_HIST, pagHist*PER_PAGE_HIST);
+
+  document.getElementById('tbody-hist').innerHTML = slice.length
+    ? slice.map(m => {
+        const dt = m.date && m.date.toDate ? m.date.toDate() : new Date(m.date || 0);
+        const dateStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+        const badge = m.type === 'in'
+          ? `<span class="hist-badge-in">📥 Entrada</span>`
+          : `<span class="hist-badge-out">📤 Saída</span>`;
+        const qtyStr = m.type === 'in' ? `+${m.qty}` : `−${m.qty}`;
+        const qtyColor = m.type === 'in' ? 'var(--green)' : 'var(--yellow)';
+        return `<tr>
+          <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${dateStr}</td>
+          <td>${badge}</td>
+          <td><span class="code-cell">${m.productCode||'—'}</span></td>
+          <td style="font-size:13px">${m.productModel||'—'}</td>
+          <td style="font-family:var(--mono);font-weight:700;color:${qtyColor}">${qtyStr}</td>
+          <td style="color:var(--muted);font-size:12px">${m.user||'—'}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" class="hist-empty">Nenhuma movimentação encontrada.</td></tr>';
+
+  // Pagination
+  renderPag('pag-hist', pagHist, pages, data.length, n => { pagHist = n; renderHistorico(); });
+}
+
 // ── TOAST ────────────────────────────────────────────
 window.toast = function(msg, color='green') {
   const el=document.createElement('div'); el.className=`toast ${color}`;
@@ -1401,6 +1601,35 @@ window.toast = function(msg, color='green') {
 document.getElementById('search-view').addEventListener('input', () => { pagView = 1; renderView(); });
 document.getElementById('search-manage').addEventListener('input', () => { pagManage = 1; renderManage(); });
 document.getElementById('btn-pdf').addEventListener('click', () => gerarRelatorio());
+
+// Histórico geral
+document.getElementById('btn-historico-geral').addEventListener('click', () => {
+  switchTab('historico');
+  loadHistoricoGeral();
+});
+document.getElementById('btn-back-historico').addEventListener('click', () => {
+  switchTab('produtos');
+});
+document.getElementById('search-hist').addEventListener('input', () => { pagHist = 1; renderHistorico(); });
+document.getElementById('filter-hist-type').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
+document.getElementById('filter-hist-sort').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
+
+// Sort headers via event delegation - works inside module scope
+document.addEventListener('click', e => {
+  const th = e.target.closest('th[data-sort]');
+  if (!th) return;
+  const sortType = th.dataset.sort;
+  const field = th.dataset.field;
+  if (sortType === 'view') {
+    if (sortView.field === field) sortView.dir = sortView.dir === 'asc' ? 'desc' : 'asc';
+    else { sortView.field = field; sortView.dir = 'asc'; }
+    pagView = 1; renderView();
+  } else if (sortType === 'manage') {
+    if (sortManage.field === field) sortManage.dir = sortManage.dir === 'asc' ? 'desc' : 'asc';
+    else { sortManage.field = field; sortManage.dir = 'asc'; }
+    pagManage = 1; renderManage();
+  }
+});
 
 connectFirebase();
 </script>
