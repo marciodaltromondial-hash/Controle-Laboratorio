@@ -1301,7 +1301,7 @@ window.confirmEntrada = async function(id) {
   setSyncStatus('syncing');
   const batch=writeBatch(db);
   batch.update(doc(db,'products',id),{qty:(p.qty||0)+n});
-  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'in',qty:n,date:new Date(dateVal+'T12:00:00'),user:currentUser.name,createdAt:serverTimestamp()});
+  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'in',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
   await batch.commit();
   closeModal(); toast(`+${n} unidades adicionadas. Novo saldo: ${(p.qty||0)+n}`,'green');
 };
@@ -1325,7 +1325,7 @@ window.confirmSaida = async function(id) {
   setSyncStatus('syncing');
   const batch=writeBatch(db);
   batch.update(doc(db,'products',id),{qty:(p.qty||0)-n});
-  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'out',qty:n,date:new Date(dateVal+'T12:00:00'),user:currentUser.name,createdAt:serverTimestamp()});
+  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'out',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
   await batch.commit();
   closeModal(); toast(`−${n} unidades retiradas. Saldo restante: ${(p.qty||0)-n}`,'green');
 };
