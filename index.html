@@ -108,7 +108,8 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 32px; height: 64px;
   }
-  .topbar-brand { font-size: 17.6px; font-weight: 800; letter-spacing: 1px; }
+  .topbar-brand { font-size: 17.6px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: opacity .2s; }
+  .topbar-brand:hover { opacity: .75; }
   .topbar-brand span { color: var(--accent); }
   .topbar-left { display: flex; align-items: center; gap: 20px; }
   .topbar-greeting { display: flex; flex-direction: column; justify-content: center; border-left: 1px solid var(--border); padding-left: 20px; }
@@ -468,7 +469,7 @@
 <div id="app">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="topbar-brand">🔬 LAB <span>CONTROL</span></div>
+      <div class="topbar-brand" onclick="goHome()" title="Voltar ao início">🔬 LAB <span>CONTROL</span></div>
       <div class="topbar-greeting">
         <div class="topbar-greeting-name" id="user-name-display">—</div>
         <div class="topbar-greeting-role" id="user-funcao-display">—</div>
