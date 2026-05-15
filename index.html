@@ -166,7 +166,7 @@
   .menu-cards { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 860px; }
   .menu-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 18px; width: 220px; height: 160px;
+    border-radius: 16px; width: 180px; height: 140px;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 16px; cursor: pointer;
@@ -188,8 +188,8 @@
   .menu-card.orange::before { background: rgba(247,195,79,.07); }
   .menu-card.orange:hover   { box-shadow: 0 14px 40px rgba(247,195,79,.2); border-color: rgba(247,195,79,.65); }
   .menu-card.orange .menu-card-label { color: var(--yellow); }
-  .menu-card-icon { font-size: 50.6px; line-height: 1; position: relative; z-index: 1; }
-  .menu-card-label { font-size: 15.4px; font-weight: 700; text-align: center; position: relative; z-index: 1; padding: 0 12px; }
+  .menu-card-icon { font-size: 40px; line-height: 1; position: relative; z-index: 1; }
+  .menu-card-label { font-size: 13.5px; font-weight: 700; text-align: center; position: relative; z-index: 1; padding: 0 10px; }
   .btn-back {
     background: none; border: 1px solid var(--border); color: var(--muted);
     padding: 6px 14px; border-radius: 8px; font-size: 13.2px; font-weight: 600;
@@ -365,7 +365,7 @@
   .menu-cards { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 860px; }
   .menu-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 18px; width: 220px; height: 160px;
+    border-radius: 16px; width: 180px; height: 140px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 16px; cursor: pointer; transition: all .22s ease;
     position: relative; overflow: hidden;
@@ -386,8 +386,8 @@
   .menu-card.orange::before { background: rgba(247,195,79,.07); }
   .menu-card.orange:hover   { box-shadow: 0 14px 40px rgba(247,195,79,.2); border-color: rgba(247,195,79,.65); }
   .menu-card.orange .menu-card-label { color: var(--yellow); }
-  .menu-card-icon { font-size: 50.6px; line-height: 1; position: relative; z-index: 1; }
-  .menu-card-label { font-size: 15.4px; font-weight: 700; text-align: center; position: relative; z-index: 1; padding: 0 12px; }
+  .menu-card-icon { font-size: 40px; line-height: 1; position: relative; z-index: 1; }
+  .menu-card-label { font-size: 13.5px; font-weight: 700; text-align: center; position: relative; z-index: 1; padding: 0 10px; }
   .btn-back {
     background: none; border: 1px solid var(--border); color: var(--muted);
     padding: 6px 14px; border-radius: 8px; font-size: 13.2px; font-weight: 600;
@@ -460,6 +460,64 @@
   .hist-table-wrap tr:hover td { background:rgba(255,255,255,.02); }
   .hist-badge-in  { background:rgba(62,207,142,.15); color:var(--green); font-family:var(--mono); font-size: 13.2px; font-weight:700; padding:3px 9px; border-radius:20px; }
   .hist-badge-out { background:rgba(247,195,79,.15);  color:var(--yellow); font-family:var(--mono); font-size: 13.2px; font-weight:700; padding:3px 9px; border-radius:20px; }
+
+  /* ── REFUGOS ── */
+  .menu-card.red { border-color: rgba(247,96,79,.35); }
+  .menu-card.red::before { background: rgba(247,96,79,.07); }
+  .menu-card.red:hover { box-shadow: 0 14px 40px rgba(247,96,79,.2); border-color: rgba(247,96,79,.65); }
+  .menu-card.red .menu-card-label { color: var(--red); }
+
+  .btn-criar-refugo { padding:10px 20px; background:linear-gradient(135deg,var(--red),#c0392b); border:none; border-radius:10px; color:#fff; font-family:var(--font); font-size:14.3px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all .2s; }
+  .btn-criar-refugo:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(247,96,79,.35); }
+
+  .refugo-list { display:flex; flex-direction:column; gap:16px; }
+  .refugo-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .refugo-card-header { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; cursor:pointer; transition:background .15s; }
+  .refugo-card-header:hover { background:var(--surface2); }
+  .refugo-card-title { font-size:16.5px; font-weight:800; }
+  .refugo-card-meta { font-size:13.2px; color:var(--muted); margin-top:3px; }
+  .refugo-card-badges { display:flex; gap:8px; align-items:center; }
+  .refugo-badge { font-size:12.1px; font-weight:700; padding:4px 10px; border-radius:20px; font-family:var(--mono); }
+  .refugo-badge.caixas { background:rgba(79,142,247,.15); color:var(--accent); }
+  .refugo-badge.itens { background:rgba(62,207,142,.15); color:var(--green); }
+  .refugo-badge.status-aberto { background:rgba(247,195,79,.15); color:var(--yellow); }
+  .refugo-badge.status-fechado { background:rgba(247,96,79,.15); color:var(--red); }
+  .refugo-chevron { font-size:18px; color:var(--muted); transition:transform .2s; }
+  .refugo-chevron.open { transform:rotate(90deg); }
+  .refugo-body { display:none; padding:0 22px 20px; }
+  .refugo-body.open { display:block; }
+
+  .caixa-section { margin-bottom:16px; }
+  .caixa-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border-radius:10px; margin-bottom:8px; }
+  .caixa-title { font-size:14.3px; font-weight:700; color:var(--accent); }
+  .caixa-count { font-size:12.1px; color:var(--muted); }
+  .caixa-table { width:100%; border-collapse:collapse; font-size:13.2px; }
+  .caixa-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); }
+  .caixa-table td { padding:9px 12px; border-bottom:1px solid rgba(37,42,58,.5); }
+  .caixa-table tr:last-child td { border-bottom:none; }
+  .caixa-table tr:hover td { background:rgba(255,255,255,.02); }
+  .tensao-badge { background:rgba(79,142,247,.1); color:var(--accent); font-size:11px; font-weight:600; padding:2px 7px; border-radius:5px; font-family:var(--mono); }
+  .obs-badge { background:rgba(247,195,79,.1); color:var(--yellow); font-size:11px; font-weight:600; padding:2px 7px; border-radius:5px; }
+
+  /* Modal refugo */
+  .refugo-modal-section { margin-bottom:20px; }
+  .refugo-modal-section-title { font-size:13.2px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .caixas-builder { display:flex; flex-direction:column; gap:12px; }
+  .caixa-builder-item { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .caixa-builder-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .caixa-builder-name { font-size:14.3px; font-weight:700; color:var(--accent); }
+  .btn-add-produto-caixa { padding:5px 12px; background:rgba(62,207,142,.1); border:1px solid rgba(62,207,142,.3); color:var(--green); border-radius:7px; font-size:12.1px; font-weight:600; cursor:pointer; font-family:var(--font); transition:all .15s; }
+  .btn-add-produto-caixa:hover { background:rgba(62,207,142,.2); }
+  .btn-remove-caixa { padding:5px 10px; background:rgba(247,96,79,.08); border:1px solid rgba(247,96,79,.3); color:var(--red); border-radius:7px; font-size:12.1px; font-weight:600; cursor:pointer; font-family:var(--font); transition:all .15s; }
+  .btn-remove-caixa:hover { background:rgba(247,96,79,.18); }
+  .produto-row { display:grid; grid-template-columns:80px 1fr 1fr 90px 100px 32px; gap:6px; align-items:center; margin-bottom:6px; }
+  .produto-row input, .produto-row select { padding:7px 10px; background:var(--bg); border:1px solid var(--border); border-radius:7px; color:var(--text); font-family:var(--font); font-size:13.2px; outline:none; width:100%; }
+  .produto-row input:focus, .produto-row select:focus { border-color:var(--accent); }
+  .btn-remove-produto { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:4px; border-radius:5px; transition:color .15s; }
+  .btn-remove-produto:hover { color:var(--red); }
+  .btn-add-caixa { width:100%; padding:10px; background:none; border:1px dashed rgba(79,142,247,.4); color:var(--accent); border-radius:9px; font-family:var(--font); font-size:13.2px; font-weight:600; cursor:pointer; transition:all .2s; margin-top:4px; }
+  .btn-add-caixa:hover { background:rgba(79,142,247,.07); border-style:solid; }
+  .modal-wide-xl { width:780px !important; }
 </style>
 </head>
 <body>
@@ -532,6 +590,10 @@
         <span class="menu-card-icon">👥</span>
         <span class="menu-card-label">Usuários</span>
       </div>
+      <div class="menu-card red" onclick="switchTab('refugos')" id="card-refugos">
+        <span class="menu-card-icon">🗃️</span>
+        <span class="menu-card-label">Refugos Laboratório</span>
+      </div>
     </div>
   </div>
 
@@ -601,6 +663,17 @@
       </table>
     </div>
     <div class="pagination" id="pag-hist"></div>
+  </div>
+
+  <!-- PAGE: REFUGOS -->
+  <div class="page" id="page-refugos">
+    <div class="page-header">
+      <div><div class="page-title">Refugos Laboratório <small>Registro de saída de produtos por caixas</small></div></div>
+      <button class="btn-criar-refugo" id="btn-criar-refugo">+ Criar Refugo</button>
+    </div>
+    <div class="refugo-list" id="refugo-list">
+      <div class="hist-loading">Carregando refugos...</div>
+    </div>
   </div>
 
   <!-- PAGE: GERENCIADOR -->
@@ -1102,8 +1175,12 @@ window.doLogin = function() {
   document.getElementById('user-funcao-display').textContent = found.funcao || (found.role==='admin'?'Administrador':found.role==='editor'?'Editor':'—');
   document.getElementById('user-badge').innerHTML = found.role === 'admin' ? '<span class="admin-badge">ADMIN</span>' : '';
   const isAdmin = found.role === 'admin';
-  const isEditor = found.role === 'editor';
-  document.getElementById('card-gerenciador').style.display = (isAdmin||isEditor) ? '' : 'none';
+  // Rule: Admin sees everything. Editor sees everything EXCEPT Usuários.
+  // Any new card added to the home will be visible to editors automatically.
+  document.querySelectorAll('.menu-card').forEach(card => {
+    card.style.display = '';
+  });
+  // Only Usuários is restricted to admin only
   document.getElementById('card-usuarios').style.display = isAdmin ? '' : 'none';
   goHome(); renderAll();
 };
@@ -1129,6 +1206,7 @@ window.switchTab = function(tab) {
   const t = document.getElementById('page-' + tab);
   if (t) t.style.display = 'block';
   document.getElementById('btn-back').classList.add('visible');
+  if (tab === 'refugos') loadRefugos();
 };
 
 // ── RENDER ───────────────────────────────────────────
@@ -1457,10 +1535,7 @@ function gerarRelatorio() {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234f8ef7'/%3E%3Ctext y='68' x='18' font-size='60' fill='white'%3E%F0%9F%94%AC%3C/text%3E%3C/svg%3E">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-
-  <title>Relatório de Estoque — LAB Control</title>
+  <title>ELQ — Relatório de Estoque</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #222; background: #fff; padding: 32px; font-size: 13px; }
@@ -1504,8 +1579,8 @@ function gerarRelatorio() {
 
   <div class="header">
     <div class="header-left">
-      <div class="logo">🔬 LAB CONTROL</div>
-      <div class="subtitle">Relatório de Estoque de Produtos</div>
+      <div class="logo">🔬 ELQ — Estoque Laboratório Qualidade</div>
+      <div class="subtitle">Divisão dos Importados — Relatório de Estoque</div>
     </div>
     <div class="header-right">
       Gerado em: <strong>${dataHora}</strong><br>
@@ -1627,6 +1702,368 @@ function renderHistorico() {
   renderPag('pag-hist', pagHist, pages, data.length, n => { pagHist = n; renderHistorico(); });
 }
 
+// ── REFUGOS ──────────────────────────────────────────
+let refugos = [];
+let caixaCount = 0;
+
+// Load all refugos from Firestore
+async function loadRefugos() {
+  const listEl = document.getElementById('refugo-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="hist-loading">⏳ Carregando refugos...</div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'refugos'), orderBy('createdAt', 'desc')));
+    refugos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderRefugos();
+  } catch(e) {
+    listEl.innerHTML = '<div class="hist-empty">Erro ao carregar: ' + e.message + '</div>';
+  }
+}
+
+function renderRefugos() {
+  const listEl = document.getElementById('refugo-list');
+  if (!listEl) return;
+  if (refugos.length === 0) {
+    listEl.innerHTML = '<div class="hist-empty">Nenhum refugo registrado ainda. Clique em "Criar Refugo" para começar.</div>';
+    return;
+  }
+  listEl.innerHTML = refugos.map((r, idx) => {
+    const totalCaixas = (r.caixas || []).length;
+    const totalItens  = (r.caixas || []).reduce((a, c) => a + (c.produtos || []).reduce((b, p) => b + (parseInt(p.qty) || 0), 0), 0);
+    const data = r.data || '—';
+    const caixasHtml = (r.caixas || []).map(c => {
+      const rowsHtml = (c.produtos || []).map(p => `
+        <tr>
+          <td style="text-align:center;font-family:var(--mono);font-weight:700">${p.qty || 1}</td>
+          <td><span class="code-cell">${p.codigo || '—'}</span></td>
+          <td>${p.modelo || '—'}</td>
+          <td><span class="tensao-badge">${p.tensao || '—'}</span></td>
+          <td>${p.obs ? '<span class="obs-badge">' + p.obs + '</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`).join('');
+      return `
+        <div class="caixa-section">
+          <div class="caixa-header">
+            <div class="caixa-title">📦 ${c.nome}</div>
+            <div class="caixa-count">${(c.produtos||[]).reduce((a,p)=>a+(parseInt(p.qty)||0),0)} unidades</div>
+          </div>
+          <table class="caixa-table">
+            <thead><tr><th>Qtd</th><th>Código</th><th>Modelo</th><th>Tensão</th><th>Obs</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+    }).join('');
+    return `
+      <div class="refugo-card">
+        <div class="refugo-card-header" onclick="toggleRefugo('rcard-${idx}')">
+          <div>
+            <div class="refugo-card-title">📅 Refugo — ${data}</div>
+            <div class="refugo-card-meta">${r.obs || ''}</div>
+          </div>
+          <div class="refugo-card-badges">
+            <span class="refugo-badge caixas">📦 ${totalCaixas} caixa${totalCaixas!==1?'s':''}</span>
+            <span class="refugo-badge itens">🔢 ${totalItens} itens</span>
+            <span class="refugo-chevron" id="chev-${idx}">›</span>
+          </div>
+        </div>
+        <div class="refugo-body" id="rcard-${idx}">
+          ${caixasHtml}
+          <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
+            <button class="btn-pdf" style="font-size:13.2px" onclick="gerarRelatorioRefugo(${idx})">🖨️ Gerar PDF deste Refugo</button>
+            ${r.id && currentUser && currentUser.role === 'admin' ? `<button class="btn-action btn-del" onclick="deleteRefugo('${r.id}')">🗑 Remover Refugo</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+window.toggleRefugo = function(id) {
+  const body = document.getElementById(id);
+  if (!body) return;
+  const idx = id.replace('rcard-','');
+  const chev = document.getElementById('chev-' + idx);
+  const isOpen = body.classList.toggle('open');
+  if (chev) { chev.classList.toggle('open', isOpen); chev.textContent = isOpen ? '⌄' : '›'; }
+};
+
+window.deleteRefugo = async function(id) {
+  if (!confirm('Remover este refugo? Esta ação não pode ser desfeita.')) return;
+  await deleteDoc(doc(db, 'refugos', id));
+  toast('Refugo removido.', 'red');
+  loadRefugos();
+};
+
+window.gerarRelatorioRefugo = function(idx) {
+  const r = refugos[idx];
+  if (!r) return;
+
+  const totalItens = (r.caixas||[]).reduce((a,c) => a + (c.produtos||[]).reduce((b,p) => b+(parseInt(p.qty)||0), 0), 0);
+  const totalCaixas = (r.caixas||[]).length;
+  const now = new Date();
+  const dataHora = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+  const caixasHtml = (r.caixas||[]).map(c => {
+    const subtotal = (c.produtos||[]).reduce((a,p) => a+(parseInt(p.qty)||0), 0);
+    const rows = (c.produtos||[]).map((p,i) => `
+      <tr>
+        <td style="text-align:center;color:#888">${i+1}</td>
+        <td style="text-align:center;font-weight:700">${p.qty||1}</td>
+        <td style="font-family:monospace;color:#1a5cb5;font-weight:600">${p.codigo||'—'}</td>
+        <td>${p.modelo||'—'}</td>
+        <td style="text-align:center">${p.tensao||'—'}</td>
+        <td style="color:#888">${p.obs||'—'}</td>
+      </tr>`).join('');
+    const isBox = c.nome !== 'SOLTOS' && !c.nome.startsWith('SOLT');
+    const headerColor = isBox ? '#1a4fa3' : '#8a6200';
+    const headerBg = isBox ? '#e8f0ff' : '#fff8e1';
+    return `
+      <div style="margin-bottom:24px;page-break-inside:avoid">
+        <div style="background:${headerBg};border-left:4px solid ${headerColor};padding:10px 14px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:800;color:${headerColor};font-size:15px">📦 ${c.nome}</span>
+          <span style="font-size:12px;color:#666">${subtotal} unidade${subtotal!==1?'s':''}</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e0e0e0;border-top:none">
+          <thead>
+            <tr style="background:#f5f7fa">
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">#</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Qtd</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Código</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Modelo</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Tensão</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Obs</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Refugo — ${r.data}</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Calibri','Segoe UI',Arial,sans-serif; color:#222; background:#fff; padding:32px; font-size:13px; }
+    .btn-print { display:inline-flex; align-items:center; gap:8px; background:#1a4fa3; color:#fff; border:none; padding:10px 22px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:24px; }
+    .btn-print:hover { background:#153d82; }
+    .header { border-bottom:3px solid #1a4fa3; padding-bottom:14px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-start; }
+    .logo { font-size:19px; font-weight:800; color:#1a4fa3; letter-spacing:1px; margin-bottom:3px; }
+    .subtitle { font-size:12px; color:#666; }
+    .header-right { text-align:right; font-size:12px; color:#666; line-height:1.7; }
+    .summary { display:flex; gap:14px; margin-bottom:22px; }
+    .summary-card { flex:1; border:1px solid #e0e0e0; border-radius:8px; padding:10px 14px; }
+    .summary-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#888; font-weight:700; margin-bottom:4px; }
+    .summary-value { font-size:22px; font-weight:800; }
+    .obs-box { background:#fffbe6; border:1px solid #ffe082; border-radius:6px; padding:10px 14px; margin-bottom:20px; font-size:13px; color:#5a4000; }
+    td { padding:8px 10px; border-bottom:1px solid #ebebeb; vertical-align:middle; }
+    tr:nth-child(even) td { background:#f8f9fc; }
+    tr:last-child td { border-bottom:none; }
+    .footer { margin-top:24px; padding-top:12px; border-top:1px solid #e0e0e0; font-size:11px; color:#aaa; display:flex; justify-content:space-between; }
+    @media print { .btn-print { display:none; } body { padding:16px; } @page { margin:1.5cm; } }
+  </style>
+</head>
+<body>
+  <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+
+  <div class="header">
+    <div>
+      <div class="logo">🔬 ELQ — Refugo Laboratório</div>
+      <div class="subtitle">Estoque Laboratório Qualidade — Divisão dos Importados</div>
+    </div>
+    <div class="header-right">
+      Data do Refugo: <strong>${r.data}</strong><br>
+      Registrado por: <strong>${r.criadoPor||'—'}</strong><br>
+      Gerado em: ${dataHora}
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card" style="border-color:#bbdefb">
+      <div class="summary-label">Total de Caixas</div>
+      <div class="summary-value" style="color:#1a4fa3">${totalCaixas}</div>
+    </div>
+    <div class="summary-card" style="border-color:#c8e6c9">
+      <div class="summary-label">Total de Itens</div>
+      <div class="summary-value" style="color:#1a7a4a">${totalItens}</div>
+    </div>
+  </div>
+
+  ${r.obs ? `<div class="obs-box">📝 <strong>Observação:</strong> ${r.obs}</div>` : ''}
+
+  ${caixasHtml}
+
+  <div class="footer">
+    <span>ELQ — Estoque Laboratório Qualidade / Divisão dos Importados</span>
+    <span>Refugo de ${r.data} — Gerado em ${dataHora}</span>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=960,height=750');
+  win.document.write(html);
+  win.document.close();
+};
+
+// ── CRIAR REFUGO MODAL ──────────────────────────────
+window.openCriarRefugo = function() {
+  caixaCount = 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const modal = document.getElementById('modal');
+  modal.classList.add('modal-wide-xl');
+  openModal(`
+    <div class="modal-title">🗃️ Criar Refugo</div>
+    <div class="modal-sub">Registre os produtos que saíram do laboratório organizados por caixa.</div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Informações do Refugo</div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
+        <div class="form-group"><label>Data do Refugo</label><input id="ref-data" type="date" value="${today}" /></div>
+        <div class="form-group"><label>Observação (opcional)</label><input id="ref-obs" placeholder="ex: Refugo mensal, devolução..." /></div>
+      </div>
+    </div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Caixas e Produtos</div>
+      <div class="caixas-builder" id="caixas-builder"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn-add-caixa" style="flex:1" onclick="addCaixa()">📦 + Adicionar Caixa</button>
+        <button class="btn-add-caixa" style="flex:1;border-color:rgba(247,195,79,.4);color:var(--yellow)" onclick="addSoltos()">📋 + Adicionar Soltos</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-modal-confirm" onclick="salvarRefugo()">💾 Salvar Refugo</button>
+    </div>`);
+  addCaixa(); // start with 1 caixa
+};
+
+window.addCaixa = function() {
+  caixaCount++;
+  const builder = document.getElementById('caixas-builder');
+  if (!builder) return;
+  const div = document.createElement('div');
+  div.className = 'caixa-builder-item';
+  div.id = 'caixa-' + caixaCount;
+  div.innerHTML = `
+    <div class="caixa-builder-header">
+      <input id="caixa-nome-${caixaCount}" value="CAIXA ${String(caixaCount).padStart(2,'0')}"
+        style="background:none;border:none;color:var(--accent);font-size:14.3px;font-weight:700;font-family:var(--font);outline:none;width:180px;cursor:text">
+      <div style="display:flex;gap:8px">
+        <button class="btn-add-produto-caixa" onclick="addProdutoCaixa(${caixaCount})">+ Produto</button>
+        <button class="btn-remove-caixa" onclick="removeCaixa(${caixaCount})">✕ Caixa</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:70px 130px 1fr 110px 120px 32px;gap:6px;padding:0 0 6px;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">QTD</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">CÓDIGO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">MODELO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">TENSÃO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">OBS</span>
+      <span></span>
+    </div>
+    <div id="produtos-caixa-${caixaCount}"></div>`;
+  builder.appendChild(div);
+  addProdutoCaixa(caixaCount);
+};
+
+window.addSoltos = function() {
+  caixaCount++;
+  const builder = document.getElementById('caixas-builder');
+  if (!builder) return;
+  const div = document.createElement('div');
+  div.className = 'caixa-builder-item';
+  div.id = 'caixa-' + caixaCount;
+  div.style.cssText = 'border-color:rgba(247,195,79,.35)';
+  div.innerHTML = `
+    <div class="caixa-builder-header">
+      <input id="caixa-nome-${caixaCount}" value="SOLTOS"
+        style="background:none;border:none;color:var(--yellow);font-size:14.3px;font-weight:700;font-family:var(--font);outline:none;width:180px;cursor:text">
+      <div style="display:flex;gap:8px">
+        <button class="btn-add-produto-caixa" onclick="addProdutoCaixa(${caixaCount})">+ Produto</button>
+        <button class="btn-remove-caixa" onclick="removeCaixa(${caixaCount})">✕ Remover</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:70px 130px 1fr 110px 120px 32px;gap:6px;padding:0 0 6px;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">QTD</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">CÓDIGO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">MODELO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">TENSÃO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">OBS</span>
+      <span></span>
+    </div>
+    <div id="produtos-caixa-${caixaCount}"></div>`;
+  builder.appendChild(div);
+  addProdutoCaixa(caixaCount);
+};
+
+window.removeCaixa = function(n) {
+  const el = document.getElementById('caixa-' + n);
+  if (el) el.remove();
+};
+
+window.addProdutoCaixa = function(caixaId) {
+  const container = document.getElementById('produtos-caixa-' + caixaId);
+  if (!container) return;
+  const pId = 'p-' + caixaId + '-' + Date.now();
+  const div = document.createElement('div');
+  div.id = pId;
+  div.style.cssText = 'display:grid;grid-template-columns:70px 130px 1fr 110px 120px 32px;gap:6px;margin-bottom:6px;align-items:center';
+  div.innerHTML = `
+    <input type="number" min="1" value="1" placeholder="Qtd" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Código" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Modelo" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Tensão (ex: 127V)" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Obs (opcional)" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <button onclick="document.getElementById('${pId}').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;border-radius:5px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">✕</button>`;
+  container.appendChild(div);
+};
+
+window.salvarRefugo = async function() {
+  const data = document.getElementById('ref-data').value;
+  const obs  = document.getElementById('ref-obs').value.trim();
+  if (!data) { toast('Informe a data do refugo!', 'red'); return; }
+
+  const caixasBuilder = document.querySelectorAll('.caixa-builder-item');
+  const caixas = [];
+  let totalItens = 0;
+
+  caixasBuilder.forEach(caixaEl => {
+    const id = caixaEl.id.replace('caixa-', '');
+    const nome = document.getElementById('caixa-nome-' + id)?.value || 'CAIXA';
+    const container = document.getElementById('produtos-caixa-' + id);
+    if (!container) return;
+    const rows = container.querySelectorAll('div');
+    const produtos = [];
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      if (inputs.length < 4) return;
+      const qty    = inputs[0].value.trim() || '1';
+      const codigo = inputs[1].value.trim();
+      const modelo = inputs[2].value.trim();
+      const tensao = inputs[3].value.trim();
+      const obs2   = inputs[4] ? inputs[4].value.trim() : '';
+      if (codigo || modelo) {
+        produtos.push({ qty, codigo, modelo, tensao, obs: obs2 });
+        totalItens += parseInt(qty) || 1;
+      }
+    });
+    if (produtos.length > 0) caixas.push({ nome, produtos });
+  });
+
+  if (caixas.length === 0) { toast('Adicione pelo menos um produto!', 'red'); return; }
+
+  setSyncStatus('syncing');
+  await addDoc(collection(db, 'refugos'), {
+    data, obs, caixas, totalItens, createdAt: serverTimestamp(),
+    criadoPor: currentUser ? currentUser.name : '—'
+  });
+  closeModal();
+  toast('Refugo salvo com sucesso!', 'green');
+  loadRefugos();
+};
+
 // ── TOAST ────────────────────────────────────────────
 window.toast = function(msg, color='green') {
   const el=document.createElement('div'); el.className=`toast ${color}`;
@@ -1648,6 +2085,9 @@ document.getElementById('btn-historico-geral').addEventListener('click', () => {
 document.getElementById('btn-back-historico').addEventListener('click', () => {
   switchTab('produtos');
 });
+
+// Refugos
+document.getElementById('btn-criar-refugo').addEventListener('click', () => openCriarRefugo());
 document.getElementById('search-hist').addEventListener('input', () => { pagHist = 1; renderHistorico(); });
 document.getElementById('filter-hist-type').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
 document.getElementById('filter-hist-sort').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
