@@ -1731,7 +1731,7 @@ function renderRefugos() {
     const totalCaixas = (r.caixas || []).length;
     const totalItens  = (r.caixas || []).reduce((a, c) => a + (c.produtos || []).reduce((b, p) => b + (parseInt(p.qty) || 0), 0), 0);
     const data = r.data || '—';
-    const caixasHtml = (r.caixas || []).map(c => {
+    const caixasHtml = (r.caixas || []).map((c, ci) => {
       const rowsHtml = (c.produtos || []).map(p => `
         <tr>
           <td style="text-align:center;font-family:var(--mono);font-weight:700">${p.qty || 1}</td>
@@ -1744,7 +1744,10 @@ function renderRefugos() {
         <div class="caixa-section">
           <div class="caixa-header">
             <div class="caixa-title">📦 ${c.nome}</div>
-            <div class="caixa-count">${(c.produtos||[]).reduce((a,p)=>a+(parseInt(p.qty)||0),0)} unidades</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="caixa-count">${(c.produtos||[]).reduce((a,p)=>a+(parseInt(p.qty)||0),0)} unidades</div>
+              <button class="btn-action btn-edit" style="font-size:11.5px;padding:4px 10px" onclick="gerarPDFCaixa(${idx}, ${ci})">🖨️ PDF Caixa</button>
+            </div>
           </div>
           <table class="caixa-table">
             <thead><tr><th>Qtd</th><th>Código</th><th>Modelo</th><th>Tensão</th><th>Obs</th></tr></thead>
@@ -1757,7 +1760,9 @@ function renderRefugos() {
         <div class="refugo-card-header" onclick="toggleRefugo('rcard-${idx}')">
           <div>
             <div class="refugo-card-title">📅 Refugo — ${data}</div>
-            <div class="refugo-card-meta">${r.obs || ''}</div>
+            <div class="refugo-card-meta">
+              ${r.dataMov ? `<span style="color:var(--accent);font-size:12.1px;font-weight:600">📤 Movimentado em: ${r.dataMov}</span>${r.obs ? ' &nbsp;·&nbsp; ' + r.obs : ''}` : (r.obs || '<span style="color:var(--muted);font-size:12px">Sem data de movimentação registrada</span>')}
+            </div>
           </div>
           <div class="refugo-card-badges">
             <span class="refugo-badge caixas">📦 ${totalCaixas} caixa${totalCaixas!==1?'s':''}</span>
@@ -1767,9 +1772,12 @@ function renderRefugos() {
         </div>
         <div class="refugo-body" id="rcard-${idx}">
           ${caixasHtml}
-          <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
             <button class="btn-pdf" style="font-size:13.2px" onclick="gerarRelatorioRefugo(${idx})">🖨️ Gerar PDF deste Refugo</button>
-            ${r.id && currentUser && currentUser.role === 'admin' ? `<button class="btn-action btn-del" onclick="deleteRefugo('${r.id}')">🗑 Remover Refugo</button>` : ''}
+            <div style="display:flex;gap:8px">
+              ${r.id ? `<button class="btn-action btn-edit" onclick="editarRefugo('${r.id}')">✏️ Editar Refugo</button>` : ''}
+              ${r.id && currentUser && currentUser.role === 'admin' ? `<button class="btn-action btn-del" onclick="deleteRefugo('${r.id}')">🗑 Remover Refugo</button>` : ''}
+            </div>
           </div>
         </div>
       </div>`;
@@ -1789,6 +1797,112 @@ window.deleteRefugo = async function(id) {
   if (!confirm('Remover este refugo? Esta ação não pode ser desfeita.')) return;
   await deleteDoc(doc(db, 'refugos', id));
   toast('Refugo removido.', 'red');
+  loadRefugos();
+};
+
+window.editarRefugo = async function(id) {
+  const r = refugos.find(x => x.id === id);
+  if (!r) return;
+
+  caixaCount = 0;
+  const modal = document.getElementById('modal');
+  modal.classList.add('modal-wide-xl');
+
+  openModal(`
+    <div class="modal-title">✏️ Editar Refugo</div>
+    <div class="modal-sub">Edite as informações, caixas e produtos deste refugo.</div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Informações do Refugo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:4px">
+        <div class="form-group"><label>Data do Refugo</label><input id="ref-data" type="date" value="${r.data}" /></div>
+        <div class="form-group"><label>Data da Movimentação</label><input id="ref-data-mov" type="date" value="${r.dataMov||''}" /></div>
+        <div class="form-group"><label>Observação (opcional)</label><input id="ref-obs" value="${r.obs||''}" placeholder="ex: Refugo mensal, devolução..." /></div>
+      </div>
+    </div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Caixas e Produtos</div>
+      <div class="caixas-builder" id="caixas-builder"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn-add-caixa" style="flex:1" onclick="addCaixa()">📦 + Adicionar Caixa</button>
+        <button class="btn-add-caixa" style="flex:1;border-color:rgba(247,195,79,.4);color:var(--yellow)" onclick="addSoltos()">📋 + Adicionar Soltos</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-modal-confirm" onclick="salvarEdicaoRefugo('${id}')">💾 Salvar Alterações</button>
+    </div>`);
+
+  // Populate existing caixas
+  for (const c of (r.caixas || [])) {
+    const isSoltos = c.nome.toUpperCase().startsWith('SOLT');
+    if (isSoltos) { addSoltos(); } else { addCaixa(); }
+    const currentId = caixaCount;
+    const nomeInput = document.getElementById('caixa-nome-' + currentId);
+    if (nomeInput) nomeInput.value = c.nome;
+
+    // Remove the default empty product row first
+    const container = document.getElementById('produtos-caixa-' + currentId);
+    if (container) container.innerHTML = '';
+
+    // Add each existing product
+    for (const p of (c.produtos || [])) {
+      addProdutoCaixa(currentId);
+      const rows = container.querySelectorAll('div');
+      const lastRow = rows[rows.length - 1];
+      if (lastRow) {
+        const inputs = lastRow.querySelectorAll('input');
+        if (inputs[0]) inputs[0].value = p.qty || 1;
+        if (inputs[1]) inputs[1].value = p.codigo || '';
+        if (inputs[2]) inputs[2].value = p.modelo || '';
+        if (inputs[3]) inputs[3].value = p.tensao || '';
+        if (inputs[4]) inputs[4].value = p.obs || '';
+      }
+    }
+  }
+};
+
+window.salvarEdicaoRefugo = async function(id) {
+  const data = document.getElementById('ref-data').value;
+  const obs  = document.getElementById('ref-obs').value.trim();
+  if (!data) { toast('Informe a data do refugo!', 'red'); return; }
+
+  const caixasBuilder = document.querySelectorAll('.caixa-builder-item');
+  const caixas = [];
+  let totalItens = 0;
+
+  caixasBuilder.forEach(caixaEl => {
+    const cid = caixaEl.id.replace('caixa-', '');
+    const nome = document.getElementById('caixa-nome-' + cid)?.value || 'CAIXA';
+    const container = document.getElementById('produtos-caixa-' + cid);
+    if (!container) return;
+    const rows = container.querySelectorAll('div');
+    const produtos = [];
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      if (inputs.length < 4) return;
+      const qty    = inputs[0].value.trim() || '1';
+      const codigo = inputs[1].value.trim();
+      const modelo = inputs[2].value.trim();
+      const tensao = inputs[3].value.trim();
+      const obs2   = inputs[4] ? inputs[4].value.trim() : '';
+      if (codigo || modelo) {
+        produtos.push({ qty, codigo, modelo, tensao, obs: obs2 });
+        totalItens += parseInt(qty) || 1;
+      }
+    });
+    if (produtos.length > 0) caixas.push({ nome, produtos });
+  });
+
+  if (caixas.length === 0) { toast('Adicione pelo menos um produto!', 'red'); return; }
+
+  setSyncStatus('syncing');
+  const dataMov = document.getElementById('ref-data-mov').value || '';
+  await updateDoc(doc(db, 'refugos', id), { data, dataMov, obs, caixas, totalItens });
+  closeModal();
+  toast('Refugo atualizado com sucesso!', 'green');
   loadRefugos();
 };
 
@@ -1873,6 +1987,7 @@ window.gerarRelatorioRefugo = function(idx) {
     </div>
     <div class="header-right">
       Data do Refugo: <strong>${r.data}</strong><br>
+      Data da Movimentação: <strong>${r.dataMov || 'Não registrada'}</strong><br>
       Registrado por: <strong>${r.criadoPor||'—'}</strong><br>
       Gerado em: ${dataHora}
     </div>
@@ -1905,6 +2020,135 @@ window.gerarRelatorioRefugo = function(idx) {
   win.document.close();
 };
 
+window.gerarPDFCaixa = function(refugoIdx, caixaIdx) {
+  const r = refugos[refugoIdx];
+  if (!r) return;
+  const c = (r.caixas || [])[caixaIdx];
+  if (!c) return;
+
+  const subtotal = (c.produtos||[]).reduce((a,p) => a+(parseInt(p.qty)||0), 0);
+  const now = new Date();
+  const dataHora = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const isBox = !c.nome.toUpperCase().startsWith('SOLT');
+
+  const rows = (c.produtos||[]).map((p,i) => `
+    <tr>
+      <td style="text-align:center;color:#888;padding:9px 10px;border-bottom:1px solid #ebebeb">${i+1}</td>
+      <td style="text-align:center;font-weight:800;font-size:15px;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.qty||1}</td>
+      <td style="font-family:monospace;color:#1a4fa3;font-weight:700;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.codigo||'—'}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid #ebebeb">${p.modelo||'—'}</td>
+      <td style="text-align:center;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.tensao||'—'}</td>
+      <td style="color:#888;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.obs||'—'}</td>
+    </tr>`).join('');
+
+  const accentColor = isBox ? '#1a4fa3' : '#8a6200';
+  const accentBg    = isBox ? '#e8f0ff' : '#fff8e1';
+  const icon        = isBox ? '📦' : '📋';
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${c.nome} — Refugo ${r.data}</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Calibri','Segoe UI',Arial,sans-serif; color:#222; background:#fff; padding:28px; font-size:13px; }
+    .btn-print { display:inline-flex; align-items:center; gap:8px; background:${accentColor}; color:#fff; border:none; padding:10px 22px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:22px; }
+    .btn-print:hover { opacity:.88; }
+
+    /* IDENTIFICAÇÃO DA CAIXA */
+    .box-id {
+      background:${accentBg}; border:3px solid ${accentColor};
+      border-radius:12px; padding:20px 24px;
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:20px;
+    }
+    .box-name { font-size:32px; font-weight:800; color:${accentColor}; letter-spacing:1px; }
+    .box-meta { text-align:right; font-size:12px; color:#666; line-height:1.8; }
+    .box-meta strong { color:#333; font-size:13px; }
+
+    /* HEADER ELQ */
+    .header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid ${accentColor}; padding-bottom:12px; margin-bottom:18px; }
+    .logo { font-size:16px; font-weight:800; color:${accentColor}; }
+    .subtitle { font-size:11px; color:#888; margin-top:2px; }
+    .gen-info { font-size:11px; color:#888; text-align:right; }
+
+    /* SUMMARY */
+    .summary { display:flex; gap:12px; margin-bottom:18px; }
+    .scard { flex:1; border:1px solid #e0e0e0; border-radius:8px; padding:10px 14px; }
+    .scard-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#888; font-weight:700; margin-bottom:4px; }
+    .scard-value { font-size:22px; font-weight:800; color:${accentColor}; }
+
+    /* TABLE */
+    table { width:100%; border-collapse:collapse; border:1px solid #e0e0e0; }
+    thead { background:${accentBg}; }
+    th { padding:9px 10px; text-align:left; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:${accentColor}; border-bottom:2px solid ${accentColor}; }
+    tr:nth-child(even) td { background:#f8f9fc; }
+    tr:last-child td { border-bottom:none; }
+
+    /* FOOTER */
+    .footer { margin-top:18px; padding-top:10px; border-top:1px solid #e0e0e0; font-size:11px; color:#aaa; display:flex; justify-content:space-between; }
+    @media print { .btn-print { display:none; } body { padding:14px; } @page { margin:1cm; } }
+  </style>
+</head>
+<body>
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+
+  <div class="header">
+    <div>
+      <div class="logo">🔬 ELQ — Refugo Laboratório</div>
+      <div class="subtitle">Estoque Laboratório Qualidade — Divisão dos Importados</div>
+    </div>
+    <div class="gen-info">Gerado em: ${dataHora}</div>
+  </div>
+
+  <!-- IDENTIFICAÇÃO DA CAIXA -->
+  <div class="box-id">
+    <div class="box-name">${icon} ${c.nome}</div>
+    <div class="box-meta">
+      Data do Refugo: <strong>${r.data}</strong><br>
+      Itens nesta caixa: <strong>${subtotal} unidade${subtotal!==1?'s':''}</strong><br>
+      Registrado por: <strong>${r.criadoPor||'—'}</strong>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="scard">
+      <div class="scard-label">Itens Distintos</div>
+      <div class="scard-value">${(c.produtos||[]).length}</div>
+    </div>
+    <div class="scard">
+      <div class="scard-label">Total de Unidades</div>
+      <div class="scard-value">${subtotal}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:36px;text-align:center">#</th>
+        <th style="width:50px;text-align:center">Qtd</th>
+        <th style="width:120px">Código</th>
+        <th>Modelo</th>
+        <th style="width:90px;text-align:center">Tensão</th>
+        <th style="width:100px">Obs</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="footer">
+    <span>ELQ — ${c.nome} / Refugo ${r.data}</span>
+    <span>Gerado em ${dataHora}</span>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+};
+
 // ── CRIAR REFUGO MODAL ──────────────────────────────
 window.openCriarRefugo = function() {
   caixaCount = 0;
@@ -1917,8 +2161,9 @@ window.openCriarRefugo = function() {
 
     <div class="refugo-modal-section">
       <div class="refugo-modal-section-title">Informações do Refugo</div>
-      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:4px">
         <div class="form-group"><label>Data do Refugo</label><input id="ref-data" type="date" value="${today}" /></div>
+        <div class="form-group"><label>Data da Movimentação</label><input id="ref-data-mov" type="date" placeholder="Preencher quando movimentar" /></div>
         <div class="form-group"><label>Observação (opcional)</label><input id="ref-obs" placeholder="ex: Refugo mensal, devolução..." /></div>
       </div>
     </div>
@@ -2055,8 +2300,9 @@ window.salvarRefugo = async function() {
   if (caixas.length === 0) { toast('Adicione pelo menos um produto!', 'red'); return; }
 
   setSyncStatus('syncing');
+  const dataMov = document.getElementById('ref-data-mov').value || '';
   await addDoc(collection(db, 'refugos'), {
-    data, obs, caixas, totalItens, createdAt: serverTimestamp(),
+    data, dataMov, obs, caixas, totalItens, createdAt: serverTimestamp(),
     criadoPor: currentUser ? currentUser.name : '—'
   });
   closeModal();
