@@ -518,6 +518,30 @@
   .btn-add-caixa { width:100%; padding:10px; background:none; border:1px dashed rgba(79,142,247,.4); color:var(--accent); border-radius:9px; font-family:var(--font); font-size:13.2px; font-weight:600; cursor:pointer; transition:all .2s; margin-top:4px; }
   .btn-add-caixa:hover { background:rgba(79,142,247,.07); border-style:solid; }
   .modal-wide-xl { width:780px !important; }
+
+  /* ── AVATAR ── */
+  .avatar-upload-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .avatar-preview {
+    width:90px; height:90px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent2),var(--accent));
+    display:flex; align-items:center; justify-content:center;
+    font-size:32px; font-weight:800; color:#fff;
+    overflow:hidden; flex-shrink:0; cursor:pointer;
+    border:3px solid var(--border); transition:border-color .2s;
+    position:relative;
+  }
+  .avatar-preview:hover { border-color:var(--accent); }
+  .avatar-preview img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .avatar-preview .avatar-overlay {
+    position:absolute; inset:0; background:rgba(0,0,0,.45);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .2s; border-radius:50%;
+    font-size:22px;
+  }
+  .avatar-preview:hover .avatar-overlay { opacity:1; }
+  .avatar-hint { font-size:12.1px; color:var(--muted); }
+  .topbar-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .user-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
 </style>
 </head>
 <body>
@@ -671,6 +695,18 @@
       <div><div class="page-title">Refugos Laboratório <small>Registro de saída de produtos por caixas</small></div></div>
       <button class="btn-criar-refugo" id="btn-criar-refugo">+ Criar Refugo</button>
     </div>
+    <div class="toolbar" style="margin-bottom:16px">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-refugo" placeholder="Buscar por código, modelo, caixa ou data...">
+      </div>
+      <select class="hist-filter-select" id="filter-refugo-status">
+        <option value="">Todos os refugos</option>
+        <option value="com-mov">Com data de movimentação</option>
+        <option value="sem-mov">Sem data de movimentação</option>
+      </select>
+    </div>
+    <div id="refugo-results-info" style="font-size:13.2px;color:var(--muted);margin-bottom:12px;display:none"></div>
     <div class="refugo-list" id="refugo-list">
       <div class="hist-loading">Carregando refugos...</div>
     </div>
@@ -1170,7 +1206,14 @@ window.doLogin = function() {
   currentUser = found;
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('user-avatar').textContent = found.name[0].toUpperCase();
+  const avatarEl = document.getElementById('user-avatar');
+  if (found.avatar) {
+    avatarEl.innerHTML = `<img src="${found.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    avatarEl.textContent = '';
+  } else {
+    avatarEl.textContent = found.name[0].toUpperCase();
+    avatarEl.innerHTML = '';
+  }
   document.getElementById('user-name-display').textContent = 'Olá, ' + found.name;
   document.getElementById('user-funcao-display').textContent = found.funcao || (found.role==='admin'?'Administrador':found.role==='editor'?'Editor':'—');
   document.getElementById('user-badge').innerHTML = found.role === 'admin' ? '<span class="admin-badge">ADMIN</span>' : '';
@@ -1210,6 +1253,13 @@ window.switchTab = function(tab) {
 };
 
 // ── RENDER ───────────────────────────────────────────
+function renderAvatarEl(u, size=38) {
+  if (u.avatar) {
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,var(--accent2),var(--accent))"><img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.38)}px;font-weight:800;color:#fff;flex-shrink:0">${(u.name||'?')[0].toUpperCase()}</div>`;
+}
+
 function renderAll() { renderStats(); renderView(); renderManage(); renderUsers(); }
 function getSorted(data, sort) {
   return [...data].sort((a, b) => {
@@ -1305,7 +1355,7 @@ function renderUsers() {
   document.getElementById('users-grid').innerHTML = users.map(u=>`
     <div class="user-card">
       <div class="user-info">
-        <div class="user-avatar">${(u.name||'?')[0]}</div>
+        ${renderAvatarEl(u, 40)}
         <div>
           <div class="user-name">${u.name} ${u.role==='admin'?'<span class="admin-badge">ADMIN</span>':u.role==='editor'?'<span class="admin-badge" style="background:rgba(62,207,142,.15);border-color:rgba(62,207,142,.3);color:var(--green)">EDITOR</span>':''}</div>
           <div class="user-email">${u.funcao||'—'}</div>
@@ -1313,6 +1363,7 @@ function renderUsers() {
       </div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div class="user-creds">Login: <span>${u.username}</span> &nbsp;|&nbsp; Senha: <span>${u.password}</span></div>
+        ${isAdmin ? `<button class="btn-action btn-edit" onclick="editarAvatar('${u.id}')">📷 Foto</button>` : ''}
         ${u.username!=='admin'&&isAdmin?`<button class="btn-action btn-del" onclick="deleteUser('${u.id}')">🗑 Remover</button>`:''}
       </div>
     </div>`).join('');
@@ -1460,7 +1511,17 @@ window.doDelete = async function(id) {
 // ── USUÁRIOS ─────────────────────────────────────────
 window.openModalNovoUsuario = function() {
   openModal(`<div class="modal-title">Novo Usuário</div><div class="modal-sub">Crie credenciais de acesso para um novo colaborador.</div>
-    <div class="form-group"><label>Nome Completo</label><input id="m-name" placeholder="ex: João Silva" /></div>
+
+    <div class="avatar-upload-wrap">
+      <div class="avatar-preview" onclick="document.getElementById('avatar-input').click()" id="avatar-preview-el">
+        <span id="avatar-initial">?</span>
+        <div class="avatar-overlay">📷</div>
+      </div>
+      <div class="avatar-hint">Clique para adicionar foto de perfil</div>
+      <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(event)">
+    </div>
+
+    <div class="form-group"><label>Nome Completo</label><input id="m-name" placeholder="ex: João Silva" oninput="document.getElementById('avatar-initial').textContent=this.value[0]||'?'" /></div>
     <div class="form-group"><label>Usuário (login)</label><input id="m-user" placeholder="ex: joao.silva" /></div>
     <div class="form-group"><label>Senha</label><input id="m-pw" type="text" placeholder="mínimo 3 caracteres" /></div>
     <div class="form-group"><label>Função</label><input id="m-funcao" placeholder="ex: Técnico, Analista..." /></div>
@@ -1473,6 +1534,36 @@ window.openModalNovoUsuario = function() {
     <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
     <button class="btn-modal-confirm" onclick="confirmNovoUsuario()">Criar Usuário</button></div>`);
 };
+
+window.previewAvatar = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Resize to 120x120 using canvas
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 120; canvas.height = 120;
+      const ctx = canvas.getContext('2d');
+      // Draw circular crop
+      ctx.beginPath();
+      ctx.arc(60, 60, 60, 0, Math.PI*2);
+      ctx.clip();
+      // Scale and center
+      const scale = Math.max(120/img.width, 120/img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (120-w)/2, (120-h)/2, w, h);
+      const b64 = canvas.toDataURL('image/jpeg', 0.82);
+      window._avatarB64 = b64;
+      // Update preview
+      const prev = document.getElementById('avatar-preview-el');
+      if (prev) prev.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="avatar-overlay">📷</div>`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
 window.confirmNovoUsuario = async function() {
   const name=document.getElementById('m-name').value.trim(), username=document.getElementById('m-user').value.trim(),
         password=document.getElementById('m-pw').value, funcao=document.getElementById('m-funcao').value.trim(),
@@ -1480,9 +1571,88 @@ window.confirmNovoUsuario = async function() {
   if(!name||!username||!password) { toast('Preencha todos os campos!','red'); return; }
   if(password.length<3) { toast('Senha muito curta (mín. 3 caracteres)!','red'); return; }
   if(users.find(u=>u.username===username)) { toast('Usuário já existe!','red'); return; }
-  await addDoc(collection(db,'users'),{name,username,password,funcao,role,createdAt:serverTimestamp()});
+  const avatar = window._avatarB64 || '';
+  window._avatarB64 = null;
+  await addDoc(collection(db,'users'),{name,username,password,funcao,role,avatar,createdAt:serverTimestamp()});
   closeModal(); toast('Usuário criado com sucesso!','green');
 };
+window.editarAvatar = function(id) {
+  const u = users.find(x => x.id === id);
+  if (!u) return;
+  window._editAvatarId = id;
+  openModal(`
+    <div class="modal-title">📷 Foto de Perfil</div>
+    <div class="modal-sub">${u.name}</div>
+    <div class="avatar-upload-wrap" style="margin:20px 0">
+      <div class="avatar-preview" onclick="document.getElementById('avatar-edit-input').click()" id="avatar-edit-preview" style="width:110px;height:110px;font-size:36px">
+        ${u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : `<span>${(u.name||'?')[0].toUpperCase()}</span>`}
+        <div class="avatar-overlay">📷</div>
+      </div>
+      <div class="avatar-hint">Clique na foto para alterar</div>
+      <input type="file" id="avatar-edit-input" accept="image/*" style="display:none" onchange="previewAvatarEdit(event)">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+      ${u.avatar ? `<button class="btn-modal-cancel" style="color:var(--red);border-color:rgba(247,96,79,.4)" onclick="removerAvatar('${id}')">🗑 Remover Foto</button>` : ''}
+      <button class="btn-modal-confirm" onclick="salvarAvatar('${id}')">💾 Salvar Foto</button>
+    </div>`);
+};
+
+window.previewAvatarEdit = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 120; canvas.height = 120;
+      const ctx = canvas.getContext('2d');
+      ctx.beginPath();
+      ctx.arc(60, 60, 60, 0, Math.PI*2);
+      ctx.clip();
+      const scale = Math.max(120/img.width, 120/img.height);
+      const w = img.width*scale, h = img.height*scale;
+      ctx.drawImage(img, (120-w)/2, (120-h)/2, w, h);
+      const b64 = canvas.toDataURL('image/jpeg', 0.82);
+      window._editAvatarB64 = b64;
+      const prev = document.getElementById('avatar-edit-preview');
+      if (prev) prev.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="avatar-overlay">📷</div>`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.salvarAvatar = async function(id) {
+  const b64 = window._editAvatarB64;
+  if (!b64) { toast('Selecione uma foto primeiro!', 'red'); return; }
+  setSyncStatus('syncing');
+  await updateDoc(doc(db,'users',id), { avatar: b64 });
+  window._editAvatarB64 = null;
+  // Update current user topbar if it's the logged user
+  const u = users.find(x => x.id === id);
+  if (u && currentUser && currentUser.id === id) {
+    currentUser.avatar = b64;
+    const avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) avatarEl.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  }
+  closeModal();
+  toast('Foto de perfil atualizada!', 'green');
+};
+
+window.removerAvatar = async function(id) {
+  setSyncStatus('syncing');
+  await updateDoc(doc(db,'users',id), { avatar: '' });
+  if (currentUser && currentUser.id === id) {
+    currentUser.avatar = '';
+    const avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) { avatarEl.innerHTML = ''; avatarEl.textContent = currentUser.name[0].toUpperCase(); }
+  }
+  closeModal();
+  toast('Foto removida.', 'red');
+};
+
 window.deleteUser = async function(id) {
   await deleteDoc(doc(db,'users',id));
   toast('Usuário removido.','red');
@@ -1720,26 +1890,97 @@ async function loadRefugos() {
   }
 }
 
+function getFilteredRefugos() {
+  const q = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+  const status = document.getElementById('filter-refugo-status')?.value || '';
+
+  return refugos.filter(r => {
+    // Status filter
+    if (status === 'com-mov' && !r.dataMov) return false;
+    if (status === 'sem-mov' && r.dataMov) return false;
+
+    // Text search
+    if (!q) return true;
+
+    // Search in date fields
+    if ((r.data||'').includes(q)) return true;
+    if ((r.dataMov||'').includes(q)) return true;
+    if ((r.obs||'').toLowerCase().includes(q)) return true;
+    if ((r.criadoPor||'').toLowerCase().includes(q)) return true;
+
+    // Search inside caixas and products
+    for (const c of (r.caixas||[])) {
+      if ((c.nome||'').toLowerCase().includes(q)) return true;
+      for (const p of (c.produtos||[])) {
+        if ((p.codigo||'').toLowerCase().includes(q)) return true;
+        if ((p.modelo||'').toLowerCase().includes(q)) return true;
+        if ((p.tensao||'').toLowerCase().includes(q)) return true;
+        if ((p.obs||'').toLowerCase().includes(q)) return true;
+      }
+    }
+    return false;
+  });
+}
+
+function highlightMatch(text, q) {
+  if (!q || !text) return text || '—';
+  const regex = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return text.replace(regex, '<mark style="background:rgba(79,142,247,.3);color:var(--text);border-radius:3px;padding:0 2px">$1</mark>');
+}
+
 function renderRefugos() {
   const listEl = document.getElementById('refugo-list');
   if (!listEl) return;
+
+  const q = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+  const filtered = getFilteredRefugos();
+  const infoEl = document.getElementById('refugo-results-info');
+
+  // Show results info when searching
+  if (infoEl) {
+    if (q || document.getElementById('filter-refugo-status')?.value) {
+      infoEl.style.display = 'block';
+      infoEl.innerHTML = filtered.length > 0
+        ? `🔍 <strong>${filtered.length}</strong> refugo${filtered.length!==1?'s':''} encontrado${filtered.length!==1?'s':''} de <strong>${refugos.length}</strong> total`
+        : `🔍 Nenhum refugo encontrado para "<strong>${q}</strong>"`;
+    } else {
+      infoEl.style.display = 'none';
+    }
+  }
+
   if (refugos.length === 0) {
     listEl.innerHTML = '<div class="hist-empty">Nenhum refugo registrado ainda. Clique em "Criar Refugo" para começar.</div>';
     return;
   }
-  listEl.innerHTML = refugos.map((r, idx) => {
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="hist-empty">Nenhum refugo encontrado para essa busca.</div>';
+    return;
+  }
+
+  // Map filtered refugos with original index for PDF/edit/delete
+  listEl.innerHTML = filtered.map((r) => {
+    const idx = refugos.indexOf(r);
     const totalCaixas = (r.caixas || []).length;
     const totalItens  = (r.caixas || []).reduce((a, c) => a + (c.produtos || []).reduce((b, p) => b + (parseInt(p.qty) || 0), 0), 0);
     const data = r.data || '—';
+    const qSearch = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+    const autoExpand = qSearch && getFilteredRefugos().includes(r);
     const caixasHtml = (r.caixas || []).map((c, ci) => {
-      const rowsHtml = (c.produtos || []).map(p => `
-        <tr>
+      const rowsHtml = (c.produtos || []).map(p => {
+        const rowQ = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+        const matchRow = rowQ && (
+          (p.codigo||'').toLowerCase().includes(rowQ) ||
+          (p.modelo||'').toLowerCase().includes(rowQ) ||
+          (p.tensao||'').toLowerCase().includes(rowQ)
+        );
+        return `<tr style="${matchRow ? 'background:rgba(79,142,247,.08);' : ''}">
           <td style="text-align:center;font-family:var(--mono);font-weight:700">${p.qty || 1}</td>
-          <td><span class="code-cell">${p.codigo || '—'}</span></td>
-          <td>${p.modelo || '—'}</td>
+          <td><span class="code-cell">${highlightMatch(p.codigo, rowQ)}</span></td>
+          <td>${highlightMatch(p.modelo, rowQ)}</td>
           <td><span class="tensao-badge">${p.tensao || '—'}</span></td>
           <td>${p.obs ? '<span class="obs-badge">' + p.obs + '</span>' : '<span style="color:var(--muted)">—</span>'}</td>
-        </tr>`).join('');
+        </tr>`;
+      }).join('');
       return `
         <div class="caixa-section">
           <div class="caixa-header">
@@ -1770,7 +2011,7 @@ function renderRefugos() {
             <span class="refugo-chevron" id="chev-${idx}">›</span>
           </div>
         </div>
-        <div class="refugo-body" id="rcard-${idx}">
+        <div class="refugo-body ${autoExpand ? 'open' : ''}" id="rcard-${idx}">
           ${caixasHtml}
           <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
             <button class="btn-pdf" style="font-size:13.2px" onclick="gerarRelatorioRefugo(${idx})">🖨️ Gerar PDF deste Refugo</button>
@@ -2334,6 +2575,8 @@ document.getElementById('btn-back-historico').addEventListener('click', () => {
 
 // Refugos
 document.getElementById('btn-criar-refugo').addEventListener('click', () => openCriarRefugo());
+document.getElementById('search-refugo').addEventListener('input', () => renderRefugos());
+document.getElementById('filter-refugo-status').addEventListener('change', () => renderRefugos());
 document.getElementById('search-hist').addEventListener('input', () => { pagHist = 1; renderHistorico(); });
 document.getElementById('filter-hist-type').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
 document.getElementById('filter-hist-sort').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
