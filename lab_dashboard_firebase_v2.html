@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234f8ef7'/%3E%3Ctext y='68' x='18' font-size='60' fill='white'%3E%F0%9F%94%AC%3C/text%3E%3C/svg%3E">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELQ - Importados</title>
+
+<style>
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #3ecf8e;
+    --red: #f7604f;
+    --yellow: #f7c34f;
+    --text: #e8ecf5;
+    --muted: #6b7390;
+    --font: 'Calibri', 'Calibri Regular', sans-serif;
+    --mono: 'Calibri', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+
+  /* ===== AUTH SCREEN ===== */
+  #auth-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0d0f14;
+    position: relative;
+    padding: 20px;
+  }
+  #auth-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(79,142,247,.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(124,92,252,.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .auth-card {
+    background: #111318;
+    border: 1px solid #1e2235;
+    border-radius: 18px;
+    padding: 48px 44px 40px;
+    width: 420px;
+    max-width: 95vw;
+    position: relative;
+    animation: slideUp .4s ease;
+    box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  }
+  @keyframes slideUp { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:translateY(0) } }
+
+  /* SIGLA */
+  .auth-sigla {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .auth-sigla-text {
+    font-size: 64px;
+    font-weight: 800;
+    letter-spacing: 6px;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(79,142,247,.35);
+  }
+  .auth-nome {
+    text-align: center;
+    font-size: 15.4px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+  }
+  .auth-divisao {
+    text-align: center;
+    font-size: 13.2px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .5px;
+    margin-bottom: 36px;
+  }
+  .auth-logo { display: none; }
+  .auth-title { display: none; }
+  .auth-sub { display: none; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13.2px; font-weight: 600; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .form-group input {
+    width: 100%; padding: 13px 16px;
+    background: #0d0f14; border: 1px solid #1e2235;
+    border-radius: 10px; color: var(--text); font-family: var(--font); font-size: 15.4px;
+    transition: border-color .2s;
+    outline: none;
+  }
+  .form-group input:focus { border-color: var(--accent); }
+  .form-group input::placeholder { color: #3a3f52; }
+  .btn {
+    width: 100%; padding: 14px;
+    border-radius: 10px; border: none; cursor: pointer;
+    font-family: var(--font); font-size: 15.4px; font-weight: 700;
+    letter-spacing: .5px; transition: all .2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; margin-top: 8px; font-size: 15.4px; font-weight: 700; letter-spacing: .5px; border-radius: 10px; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(79,142,247,.35); }
+  .btn-google {
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 20px;
+  }
+  .btn-google:hover { border-color: var(--accent); background: var(--border); }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: 13.2px; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background: var(--border); }
+  .auth-error { background: rgba(247,96,79,.1); border: 1px solid rgba(247,96,79,.3); color: var(--red); border-radius: 8px; padding: 10px 14px; font-size: 14.3px; margin-top: 12px; display: none; }
+  .auth-info { background: rgba(79,142,247,.08); border: 1px solid rgba(79,142,247,.2); color: var(--accent); border-radius: 8px; padding: 12px 14px; font-size: 13.2px; margin-top: 16px; line-height: 1.6; }
+  .auth-info strong { display: block; margin-bottom: 4px; }
+
+  /* ===== MAIN APP ===== */
+  #app { display: none; min-height: 100vh; }
+
+  /* TOPBAR */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,.9); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 68px;
+  }
+  .topbar-brand { font-size: 17.6px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: opacity .2s; }
+  .topbar-brand:hover { opacity: .75; }
+  .topbar-brand span { color: var(--accent); }
+  .topbar-left { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+  .topbar-greeting { display: flex; align-items: center; gap: 12px; border-left: 1px solid var(--border); padding-left: 20px; }
+  .topbar-greeting-text { display: flex; flex-direction: column; justify-content: center; white-space: nowrap; }
+  .topbar-greeting-name { font-size: 15.4px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .topbar-greeting-role { font-size: 12.1px; color: var(--accent); font-weight: 700; margin-top: 2px; letter-spacing: .5px; text-transform: uppercase; }
+  .topbar-user { display: flex; align-items: center; gap: 10px; font-size: 14.3px; color: var(--muted); }
+  .topbar-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 800; color: #fff;
+    border: 2px solid rgba(79,142,247,.35); overflow: hidden; flex-shrink: 0;
+  }
+  .topbar-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .btn-logout { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 8px; font-size: 13.2px; cursor: pointer; font-family: var(--font); transition: all .2s; }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* ===== HOME CARD MENU ===== */
+  #page-home {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: calc(100vh - 64px);
+    padding: 40px 32px;
+    animation: fadeIn .3s ease;
+  }
+  .home-welcome { font-size: 24.2px; font-weight: 800; margin-bottom: 8px; }
+  .home-sub { color: var(--muted); font-size: 15.4px; margin-bottom: 52px; }
+  .menu-cards { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 860px; }
+  .menu-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; width: 180px; height: 140px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; cursor: pointer;
+    transition: all .22s ease; position: relative; overflow: hidden;
+  }
+  .menu-card::before { content:''; position:absolute; inset:0; border-radius:18px; opacity:0; transition:opacity .22s; }
+  .menu-card:hover { transform: translateY(-5px); }
+  .menu-card:hover::before { opacity: 1; }
+  .menu-card:active { transform: translateY(-2px); }
+  .menu-card.blue  { border-color: rgba(79,142,247,.35); }
+  .menu-card.blue::before  { background: rgba(79,142,247,.07); }
+  .menu-card.blue:hover    { box-shadow: 0 14px 40px rgba(79,142,247,.2); border-color: rgba(79,142,247,.65); }
+  .menu-card.blue  .menu-card-label { color: var(--accent); }
+  .menu-card.purple { border-color: rgba(124,92,252,.35); }
+  .menu-card.purple::before { background: rgba(124,92,252,.07); }
+  .menu-card.purple:hover   { box-shadow: 0 14px 40px rgba(124,92,252,.2); border-color: rgba(124,92,252,.65); }
+  .menu-card.purple .menu-card-label { color: var(--accent2); }
+  .menu-card.orange { border-color: rgba(247,195,79,.35); }
+  .menu-card.orange::before { background: rgba(247,195,79,.07); }
+  .menu-card.orange:hover   { box-shadow: 0 14px 40px rgba(247,195,79,.2); border-color: rgba(247,195,79,.65); }
+  .menu-card.orange .menu-card-label { color: var(--yellow); }
+  .menu-card-icon { font-size: 40px; line-height: 1; position: relative; z-index: 1; }
+  .menu-card-label { font-size: 13.5px; font-weight: 700; text-align: center; position: relative; z-index: 1; padding: 0 10px; }
+  .btn-back {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 14px; border-radius: 8px; font-size: 13.2px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); transition: all .2s;
+    display: none; align-items: center; gap: 6px;
+  }
+  .btn-back.visible { display: flex; }
+  .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+  /* keep pages hidden by default, no tab strip */
+
+  /* PAGES */
+  .page { display: none; padding: 32px; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+  #page-home { display: flex; }
+
+  /* PAGE HEADER */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+  .page-title { font-size: 28.6px; font-weight: 800; }
+  .page-title small { display: block; font-size: 14.3px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px;
+  }
+  .stat-label { font-size: 12.1px; font-weight: 600; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 35.2px; font-weight: 800; }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  /* SEARCH / TOOLBAR */
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .search-wrap input {
+    width: 100%; padding: 10px 16px 10px 40px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: var(--font); font-size: 15.4px;
+    outline: none; transition: border-color .2s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15.4px; pointer-events: none; }
+  .btn-add {
+    padding: 10px 20px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 10px; color: #fff; font-family: var(--font);
+    font-size: 14.3px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    transition: all .2s;
+  }
+  .btn-add:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,142,247,.3); }
+
+  /* TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  th { padding: 14px 20px; text-align: left; font-size: 12.1px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  th.sortable { cursor: pointer; user-select: none; transition: color .15s; }
+  th.sortable:hover { color: var(--text); }
+  th.sort-asc, th.sort-desc { color: var(--accent); }
+  th.sort-asc::after  { content: ' ↑'; font-size: 11px; }
+  th.sort-desc::after { content: ' ↓'; font-size: 11px; }
+  th.sortable { cursor: pointer; user-select: none; transition: color .15s; }
+  th.sortable:hover { color: var(--text); }
+  th.sort-active { color: var(--accent) !important; }
+  .sort-arrow { opacity: .35; font-size: 11px; margin-left: 4px; transition: opacity .15s; display: inline-block; }
+  th.sort-active .sort-arrow { opacity: 1; }
+  td { padding: 13px 20px; font-size: 15.4px; border-top: 1px solid var(--border); }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  .code-cell { font-family: var(--mono); font-size: 13.2px; color: var(--accent); background: rgba(79,142,247,.1); padding: 4px 8px; border-radius: 6px; display: inline-block; }
+  .qty-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; padding: 4px 10px; border-radius: 20px;
+    font-family: var(--mono); font-size: 14.3px; font-weight: 500;
+  }
+  .qty-badge.ok { background: rgba(62,207,142,.15); color: var(--green); }
+  .qty-badge.warn { background: rgba(247,195,79,.15); color: var(--yellow); }
+  .qty-badge.zero { background: rgba(247,96,79,.15); color: var(--red); }
+  .actions-cell { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn-action {
+    padding: 5px 10px; border-radius: 7px; border: 1px solid; font-size: 12.1px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); transition: all .15s; white-space: nowrap;
+  }
+  .btn-edit { border-color: rgba(79,142,247,.4); color: var(--accent); background: rgba(79,142,247,.08); }
+  .btn-edit:hover { background: rgba(79,142,247,.2); }
+  .btn-in { border-color: rgba(62,207,142,.4); color: var(--green); background: rgba(62,207,142,.08); }
+  .btn-in:hover { background: rgba(62,207,142,.2); }
+  .btn-out { border-color: rgba(247,195,79,.4); color: var(--yellow); background: rgba(247,195,79,.08); }
+  .btn-out:hover { background: rgba(247,195,79,.2); }
+  .btn-del { border-color: rgba(247,96,79,.4); color: var(--red); background: rgba(247,96,79,.08); }
+  .btn-del:hover { background: rgba(247,96,79,.2); }
+  .empty-row td { text-align: center; padding: 40px; color: var(--muted); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; padding: 32px; width: 460px; max-width: 100%;
+    animation: slideUp .3s ease; position: relative;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .modal-sub { font-size: 14.3px; color: var(--muted); margin-bottom: 24px; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 17.6px; display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { border-color: var(--red); color: var(--red); }
+  .modal-wide { width: 580px; }
+  .product-detail-header { display:flex; align-items:flex-start; gap:14px; margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid var(--border); }
+  .product-detail-badge { font-family:var(--mono); font-size: 13.2px; color:var(--accent); background:rgba(79,142,247,.1); padding:5px 10px; border-radius:7px; white-space:nowrap; }
+  .product-detail-info { flex:1; }
+  .product-detail-model { font-size: 16.5px; font-weight:700; margin-bottom:6px; line-height:1.4; }
+  .history-title { font-size: 12.1px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .history-list { display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; }
+  .history-item { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; }
+  .history-icon { font-size: 17.6px; flex-shrink:0; }
+  .history-details { flex:1; min-width:0; }
+  .history-action { font-size: 14.3px; font-weight:600; }
+  .history-who { font-size: 12.1px; color:var(--muted); margin-top:1px; }
+  .history-date { font-size: 12.1px; color:var(--muted); font-family:var(--mono); white-space:nowrap; }
+  .history-qty { font-family:var(--mono); font-size: 14.3px; font-weight:700; padding:3px 8px; border-radius:6px; white-space:nowrap; }
+  .history-qty.in { background:rgba(62,207,142,.15); color:var(--green); }
+  .history-qty.out { background:rgba(247,195,79,.15); color:var(--yellow); }
+  .history-empty { text-align:center; padding:28px; color:var(--muted); font-size: 14.3px; }
+  .modal .form-group { margin-bottom: 16px; }
+  .modal .form-group input {
+    width: 100%; padding: 11px 14px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 9px; color: var(--text); font-family: var(--font); font-size: 15.4px;
+    outline: none; transition: border-color .2s;
+  }
+  .modal .form-group input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+  .btn-modal-confirm { flex: 1; padding: 12px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 10px; color: #fff; font-family: var(--font); font-size: 15.4px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .btn-modal-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,142,247,.3); }
+  .btn-modal-cancel { padding: 12px 20px; background: none; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-family: var(--font); font-size: 15.4px; cursor: pointer; transition: all .2s; }
+  .btn-modal-cancel:hover { border-color: var(--text); color: var(--text); }
+  .saldo-display { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 16px; }
+  .saldo-display .saldo-label { font-size: 12.1px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .saldo-display .saldo-value { font-size: 30.8px; font-weight: 800; font-family: var(--mono); }
+  .toast { position: fixed; bottom: 32px; right: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; font-size: 15.4px; z-index: 9999; display: flex; align-items: center; gap: 10px; animation: slideUp .3s ease; max-width: 300px; }
+  .toast.green { border-color: rgba(62,207,142,.3); }
+  .toast.red { border-color: rgba(247,96,79,.3); }
+  .admin-badge { background: rgba(79,142,247,.15); border: 1px solid rgba(79,142,247,.3); color: var(--accent); padding: 3px 8px; border-radius: 6px; font-size: 12.1px; font-weight: 600; letter-spacing: .5px; }
+
+  /* USER MANAGEMENT */
+  .users-grid { display: grid; gap: 12px; }
+  .user-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .user-info { display: flex; align-items: center; gap: 12px; }
+  .user-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15.4px; flex-shrink: 0; }
+  .user-name { font-weight: 600; font-size: 15.4px; }
+  .user-email { font-size: 13.2px; color: var(--muted); }
+  .user-creds { font-family: var(--mono); font-size: 13.2px; color: var(--muted); background: var(--bg); padding: 6px 10px; border-radius: 8px; }
+  .user-creds span { color: var(--text); }
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-top: 1px solid var(--border); }
+  .pagination-info { font-size: 14.3px; color: var(--muted); }
+  .pagination-btns { display: flex; gap: 6px; }
+  .btn-page { padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: 14.3px; cursor: pointer; font-family: var(--font); transition: all .2s; }
+  .btn-page:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-page.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-page:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ===== HOME CARD MENU ===== */
+  #page-home {
+    flex-direction: column; align-items: center; justify-content: center;
+    min-height: calc(100vh - 64px); padding: 40px 32px;
+  }
+  .home-welcome { font-size: 24.2px; font-weight: 800; margin-bottom: 8px; }
+  .home-sub { color: var(--muted); font-size: 15.4px; margin-bottom: 52px; }
+  .menu-cards { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 860px; }
+  .menu-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; width: 180px; height: 140px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; cursor: pointer; transition: all .22s ease;
+    position: relative; overflow: hidden;
+  }
+  .menu-card::before { content:''; position:absolute; inset:0; border-radius:18px; opacity:0; transition:opacity .22s; }
+  .menu-card:hover { transform: translateY(-5px); }
+  .menu-card:hover::before { opacity: 1; }
+  .menu-card:active { transform: translateY(-2px); }
+  .menu-card.blue  { border-color: rgba(79,142,247,.35); }
+  .menu-card.blue::before  { background: rgba(79,142,247,.07); }
+  .menu-card.blue:hover    { box-shadow: 0 14px 40px rgba(79,142,247,.2); border-color: rgba(79,142,247,.65); }
+  .menu-card.blue  .menu-card-label { color: var(--accent); }
+  .menu-card.purple { border-color: rgba(124,92,252,.35); }
+  .menu-card.purple::before { background: rgba(124,92,252,.07); }
+  .menu-card.purple:hover   { box-shadow: 0 14px 40px rgba(124,92,252,.2); border-color: rgba(124,92,252,.65); }
+  .menu-card.purple .menu-card-label { color: var(--accent2); }
+  .menu-card.orange { border-color: rgba(247,195,79,.35); }
+  .menu-card.orange::before { background: rgba(247,195,79,.07); }
+  .menu-card.orange:hover   { box-shadow: 0 14px 40px rgba(247,195,79,.2); border-color: rgba(247,195,79,.65); }
+  .menu-card.orange .menu-card-label { color: var(--yellow); }
+  .menu-card-icon { font-size: 40px; line-height: 1; position: relative; z-index: 1; }
+  .menu-card-label { font-size: 13.5px; font-weight: 700; text-align: center; position: relative; z-index: 1; padding: 0 10px; }
+  .btn-back {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 14px; border-radius: 8px; font-size: 13.2px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); transition: all .2s;
+    display: none; align-items: center; gap: 6px;
+  }
+  .btn-back.visible { display: flex; }
+  .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+
+
+  /* PDF BUTTON */
+  .btn-pdf {
+    padding: 10px 18px; background: none;
+    border: 1px solid rgba(62,207,142,.5); color: var(--green);
+    border-radius: 10px; font-family: var(--font); font-size: 14.3px;
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+    transition: all .2s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-pdf:hover { background: rgba(62,207,142,.1); border-color: var(--green); transform: translateY(-1px); }
+
+
+
+
+  /* SYNC INDICATOR */
+  .sync-indicator { display:flex; align-items:center; gap:6px; font-size: 12.1px; color:var(--muted); }
+  .sync-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+  .sync-dot.syncing { background:var(--yellow); animation:spin .8s linear infinite; }
+  .sync-dot.error { background:var(--red); animation:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  /* IMPORT SECTION */
+  .import-section { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; margin-bottom:24px; }
+  .import-title { font-size: 15.4px; font-weight:700; margin-bottom:6px; }
+  .import-sub { font-size: 14.3px; color:var(--muted); margin-bottom:14px; }
+  .btn-import { padding:10px 20px; background:rgba(62,207,142,.1); border:1px solid rgba(62,207,142,.3); color:var(--green); font-family:var(--font); font-size: 14.3px; font-weight:700; cursor:pointer; border-radius:10px; transition:all .2s; }
+  .btn-import:hover { background:rgba(62,207,142,.2); }
+  .import-progress { margin-top:14px; display:none; }
+  .progress-bar-wrap { height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin-bottom:8px; }
+  .progress-bar { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:3px; transition:width .3s; }
+  .progress-text { font-size: 13.2px; color:var(--muted); font-family:var(--mono); }
+
+
+  /* HISTORICO GERAL */
+  .btn-historico {
+    padding: 10px 18px; background: none;
+    border: 1px solid rgba(124,92,252,.5); color: var(--accent2);
+    border-radius: 10px; font-family: var(--font); font-size: 14.3px;
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+    transition: all .2s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-historico:hover { background: rgba(124,92,252,.1); border-color: var(--accent2); transform: translateY(-1px); }
+  .hist-filters { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+  .hist-filter-select {
+    padding: 9px 14px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; color: var(--text); font-family: var(--font); font-size: 14.3px;
+    outline: none; cursor: pointer; transition: border-color .2s;
+  }
+  .hist-filter-select:focus { border-color: var(--accent); }
+  .hist-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:24px; }
+  .hist-stat { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; }
+  .hist-stat-label { font-size: 11px; font-weight:700; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-bottom:6px; }
+  .hist-stat-value { font-size: 28.6px; font-weight:800; }
+  .hist-empty { text-align:center; padding:60px; color:var(--muted); font-size: 15.4px; }
+  .hist-loading { text-align:center; padding:60px; color:var(--muted); font-size: 15.4px; }
+  .hist-table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .hist-table-wrap table { width:100%; border-collapse:collapse; }
+  .hist-table-wrap thead { background:var(--surface2); }
+  .hist-table-wrap th { padding:12px 18px; text-align:left; font-size: 12.1px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+  .hist-table-wrap td { padding:12px 18px; font-size: 14.3px; border-top:1px solid var(--border); }
+  .hist-table-wrap tr:hover td { background:rgba(255,255,255,.02); }
+  .hist-badge-in  { background:rgba(62,207,142,.15); color:var(--green); font-family:var(--mono); font-size: 13.2px; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .hist-badge-out { background:rgba(247,195,79,.15);  color:var(--yellow); font-family:var(--mono); font-size: 13.2px; font-weight:700; padding:3px 9px; border-radius:20px; }
+
+  /* ── REFUGOS ── */
+  .menu-card.red { border-color: rgba(247,96,79,.35); }
+  .menu-card.red::before { background: rgba(247,96,79,.07); }
+  .menu-card.red:hover { box-shadow: 0 14px 40px rgba(247,96,79,.2); border-color: rgba(247,96,79,.65); }
+  .menu-card.red .menu-card-label { color: var(--red); }
+
+  .btn-criar-refugo { padding:10px 20px; background:linear-gradient(135deg,var(--red),#c0392b); border:none; border-radius:10px; color:#fff; font-family:var(--font); font-size:14.3px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all .2s; }
+  .btn-criar-refugo:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(247,96,79,.35); }
+
+  .refugo-list { display:flex; flex-direction:column; gap:16px; }
+  .refugo-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .refugo-card-header { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; cursor:pointer; transition:background .15s; }
+  .refugo-card-header:hover { background:var(--surface2); }
+  .refugo-card-title { font-size:16.5px; font-weight:800; }
+  .refugo-card-meta { font-size:13.2px; color:var(--muted); margin-top:3px; }
+  .refugo-card-badges { display:flex; gap:8px; align-items:center; }
+  .refugo-badge { font-size:12.1px; font-weight:700; padding:4px 10px; border-radius:20px; font-family:var(--mono); }
+  .refugo-badge.caixas { background:rgba(79,142,247,.15); color:var(--accent); }
+  .refugo-badge.itens { background:rgba(62,207,142,.15); color:var(--green); }
+  .refugo-badge.status-aberto { background:rgba(247,195,79,.15); color:var(--yellow); }
+  .refugo-badge.status-fechado { background:rgba(247,96,79,.15); color:var(--red); }
+  .refugo-chevron { font-size:18px; color:var(--muted); transition:transform .2s; }
+  .refugo-chevron.open { transform:rotate(90deg); }
+  .refugo-body { display:none; padding:0 22px 20px; }
+  .refugo-body.open { display:block; }
+
+  .caixa-section { margin-bottom:16px; }
+  .caixa-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border-radius:10px; margin-bottom:8px; }
+  .caixa-title { font-size:14.3px; font-weight:700; color:var(--accent); }
+  .caixa-count { font-size:12.1px; color:var(--muted); }
+  .caixa-table { width:100%; border-collapse:collapse; font-size:13.2px; }
+  .caixa-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); }
+  .caixa-table td { padding:9px 12px; border-bottom:1px solid rgba(37,42,58,.5); }
+  .caixa-table tr:last-child td { border-bottom:none; }
+  .caixa-table tr:hover td { background:rgba(255,255,255,.02); }
+  .tensao-badge { background:rgba(79,142,247,.1); color:var(--accent); font-size:11px; font-weight:600; padding:2px 7px; border-radius:5px; font-family:var(--mono); }
+  .obs-badge { background:rgba(247,195,79,.1); color:var(--yellow); font-size:11px; font-weight:600; padding:2px 7px; border-radius:5px; }
+
+  /* Modal refugo */
+  .refugo-modal-section { margin-bottom:20px; }
+  .refugo-modal-section-title { font-size:13.2px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .caixas-builder { display:flex; flex-direction:column; gap:12px; }
+  .caixa-builder-item { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .caixa-builder-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .caixa-builder-name { font-size:14.3px; font-weight:700; color:var(--accent); }
+  .btn-add-produto-caixa { padding:5px 12px; background:rgba(62,207,142,.1); border:1px solid rgba(62,207,142,.3); color:var(--green); border-radius:7px; font-size:12.1px; font-weight:600; cursor:pointer; font-family:var(--font); transition:all .15s; }
+  .btn-add-produto-caixa:hover { background:rgba(62,207,142,.2); }
+  .btn-remove-caixa { padding:5px 10px; background:rgba(247,96,79,.08); border:1px solid rgba(247,96,79,.3); color:var(--red); border-radius:7px; font-size:12.1px; font-weight:600; cursor:pointer; font-family:var(--font); transition:all .15s; }
+  .btn-remove-caixa:hover { background:rgba(247,96,79,.18); }
+  .produto-row { display:grid; grid-template-columns:80px 1fr 1fr 90px 100px 32px; gap:6px; align-items:center; margin-bottom:6px; }
+  .produto-row input, .produto-row select { padding:7px 10px; background:var(--bg); border:1px solid var(--border); border-radius:7px; color:var(--text); font-family:var(--font); font-size:13.2px; outline:none; width:100%; }
+  .produto-row input:focus, .produto-row select:focus { border-color:var(--accent); }
+  .btn-remove-produto { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:4px; border-radius:5px; transition:color .15s; }
+  .btn-remove-produto:hover { color:var(--red); }
+  .btn-add-caixa { width:100%; padding:10px; background:none; border:1px dashed rgba(79,142,247,.4); color:var(--accent); border-radius:9px; font-family:var(--font); font-size:13.2px; font-weight:600; cursor:pointer; transition:all .2s; margin-top:4px; }
+  .btn-add-caixa:hover { background:rgba(79,142,247,.07); border-style:solid; }
+  .modal-wide-xl { width:780px !important; }
+
+  /* ── AVATAR ── */
+  .avatar-upload-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .avatar-preview {
+    width:90px; height:90px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent2),var(--accent));
+    display:flex; align-items:center; justify-content:center;
+    font-size:32px; font-weight:800; color:#fff;
+    overflow:hidden; flex-shrink:0; cursor:pointer;
+    border:3px solid var(--border); transition:border-color .2s;
+    position:relative;
+  }
+  .avatar-preview:hover { border-color:var(--accent); }
+  .avatar-preview img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .avatar-preview .avatar-overlay {
+    position:absolute; inset:0; background:rgba(0,0,0,.45);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .2s; border-radius:50%;
+    font-size:22px;
+  }
+  .avatar-preview:hover .avatar-overlay { opacity:1; }
+  .avatar-hint { font-size:12.1px; color:var(--muted); }
+  .topbar-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .user-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+</style>
+</head>
+<body>
+
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+  <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;"></div>
+  <div style="font-size:14px;color:var(--muted);" id="loading-text">Conectando...</div>
+</div>
+
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-sigla">
+      <div class="auth-sigla-text">ELQ</div>
+    </div>
+    <div class="auth-nome">Estoque Laboratório Qualidade</div>
+    <div class="auth-divisao">Divisão dos Importados</div>
+
+    <div class="form-group">
+      <label>Usuário</label>
+      <input type="text" id="login-user" placeholder="Digite seu usuário" onkeydown="if(event.key==='Enter') doLogin()" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+    <div class="auth-error" id="auth-error">Usuário ou senha incorretos.</div>
+  </div>
+
+  <div style="margin-top:24px;font-size:12.1px;color:#3a3f52;text-align:center;">
+    Desenvolvido por <strong style="color:#4a5068;">Marcio Daltro</strong>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand" onclick="goHome()" title="Voltar ao início">🔬 <span>ELQ</span></div>
+      <div class="topbar-greeting">
+        <div class="topbar-avatar" id="user-avatar">A</div>
+        <div class="topbar-greeting-text">
+          <div class="topbar-greeting-name" id="user-name-display">—</div>
+          <div class="topbar-greeting-role" id="user-funcao-display">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="sync-indicator"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">Sincronizado</span></div>
+    <div class="topbar-user">
+      <span id="user-badge"></span>
+      <button class="btn-back" id="btn-back" onclick="goHome()">← Voltar</button>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <!-- HOME: CARD MENU -->
+  <div id="page-home">
+    <div class="menu-cards">
+      <div class="menu-card blue" onclick="switchTab('produtos')">
+        <span class="menu-card-icon">📦</span>
+        <span class="menu-card-label">Produtos no LAB</span>
+      </div>
+      <div class="menu-card purple" onclick="switchTab('gerenciador')" id="card-gerenciador">
+        <span class="menu-card-icon">⚙️</span>
+        <span class="menu-card-label">Gerenciador de Produtos</span>
+      </div>
+      <div class="menu-card orange" onclick="switchTab('usuarios')" id="card-usuarios">
+        <span class="menu-card-icon">👥</span>
+        <span class="menu-card-label">Usuários</span>
+      </div>
+      <div class="menu-card red" onclick="switchTab('refugos')" id="card-refugos">
+        <span class="menu-card-icon">🗃️</span>
+        <span class="menu-card-label">Refugos Laboratório</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: PRODUTOS -->
+  <div class="page" id="page-produtos">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Produtos no LAB <small>Clique em um produto para ver o histórico de movimentações</small></div>
+      </div>
+      <button class="btn-historico" id="btn-historico-geral">📋 Histórico Geral</button>
+    </div>
+    <div class="stats-row" id="stats-view"></div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-view" placeholder="Buscar por código ou modelo..." >
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+  <th class="sortable" id="th-view-code"  data-sort="view" data-field="code">Código ↕</th>
+  <th class="sortable" id="th-view-model" data-sort="view" data-field="model">Modelo ↕</th>
+  <th>Qtd. Atual</th>
+</tr></thead>
+        <tbody id="tbody-view"></tbody>
+      </table>
+      <div class="pagination" id="pag-view"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: HISTÓRICO GERAL -->
+  <div class="page" id="page-historico">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Histórico Geral <small>Todas as movimentações de entrada e saída</small></div>
+      </div>
+      <button class="btn-historico" id="btn-back-historico">← Voltar para Produtos</button>
+    </div>
+    <div class="hist-stats" id="hist-stats"></div>
+    <div class="hist-filters">
+      <div class="search-wrap" style="min-width:240px">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-hist" placeholder="Buscar por código ou modelo...">
+      </div>
+      <select class="hist-filter-select" id="filter-hist-type">
+        <option value="">Entrada e Saída</option>
+        <option value="in">Somente Entradas</option>
+        <option value="out">Somente Saídas</option>
+      </select>
+      <select class="hist-filter-select" id="filter-hist-sort">
+        <option value="desc">Mais recentes primeiro</option>
+        <option value="asc">Mais antigos primeiro</option>
+      </select>
+    </div>
+    <div class="hist-table-wrap">
+      <table>
+        <thead><tr>
+          <th>Data</th>
+          <th>Tipo</th>
+          <th>Código</th>
+          <th>Modelo</th>
+          <th>Qtd.</th>
+          <th>Usuário</th>
+        </tr></thead>
+        <tbody id="tbody-hist"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pag-hist"></div>
+  </div>
+
+  <!-- PAGE: REFUGOS -->
+  <div class="page" id="page-refugos">
+    <div class="page-header">
+      <div><div class="page-title">Refugos Laboratório <small>Registro de saída de produtos por caixas</small></div></div>
+      <button class="btn-criar-refugo" id="btn-criar-refugo">+ Criar Refugo</button>
+    </div>
+    <div class="toolbar" style="margin-bottom:16px">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-refugo" placeholder="Buscar por código, modelo, caixa ou data...">
+      </div>
+      <select class="hist-filter-select" id="filter-refugo-status">
+        <option value="">Todos os refugos</option>
+        <option value="com-mov">Com data de movimentação</option>
+        <option value="sem-mov">Sem data de movimentação</option>
+      </select>
+    </div>
+    <div id="refugo-results-info" style="font-size:13.2px;color:var(--muted);margin-bottom:12px;display:none"></div>
+    <div class="refugo-list" id="refugo-list">
+      <div class="hist-loading">Carregando refugos...</div>
+    </div>
+  </div>
+
+  <!-- PAGE: GERENCIADOR -->
+  <div class="page" id="page-gerenciador">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Gerenciador de Produtos <small>Adicionar, editar, movimentar e remover produtos</small></div>
+      </div>
+      <button class="btn-add" onclick="openModalNovoProduto()">+ Novo Produto</button>
+    </div>
+    <div class="import-section" id="import-section" style="display:none">
+      <div class="import-title">📦 Importar dados iniciais</div>
+      <div class="import-sub">O banco está vazio. Importe todos os produtos da planilha com um clique.</div>
+      <button class="btn-import" onclick="importInitialData()">Importar Produtos da Planilha</button>
+      <div class="import-progress" id="import-progress">
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+        <div class="progress-text" id="progress-text">Importando...</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-manage" placeholder="Buscar por código ou modelo..." >
+      </div>
+      <button class="btn-pdf" id="btn-pdf">🖨️ Gerar Relatório PDF</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+  <th class="sortable" id="th-manage-code"  data-sort="manage" data-field="code">Código ↕</th>
+  <th class="sortable" id="th-manage-model" data-sort="manage" data-field="model">Modelo ↕</th>
+  <th>Saldo</th><th>Ações</th>
+</tr></thead>
+        <tbody id="tbody-manage"></tbody>
+      </table>
+      <div class="pagination" id="pag-manage"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: USUÁRIOS -->
+  <div class="page" id="page-usuarios">
+    <div class="page-header">
+      <div><div class="page-title">Usuários <small>Gerencie o acesso ao sistema</small></div></div>
+      <button class="btn-add" onclick="openModalNovoUsuario()">+ Novo Usuário</button>
+    </div>
+    <div class="users-grid" id="users-grid"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
+import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js';
+
+// ── FIREBASE CONFIG ──────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBNgaD6lggwGXLs8qBGglWFjDk5lMFpcPQ",
+  authDomain: "lab-control-daa9d.firebaseapp.com",
+  projectId: "lab-control-daa9d",
+  storageBucket: "lab-control-daa9d.firebasestorage.app",
+  messagingSenderId: "802403495584",
+  appId: "1:802403495584:web:d01d337582e4dbdae323c5"
+};
+
+// ── PRODUTOS INICIAIS ────────────────────────────────
+const INITIAL_PRODUCTS = [
+  ["76726-01","AIR FRYER AF-35-BF 127V/60Hz",2],
+  ["76726-02","AIR FRYER AF-35-BF 220V/60Hz",1],
+  ["75992-02","AIR FRYER AF-36-BI 220V/60Hz",1],
+  ["75999-01","AIR FRYER AF-36-FB 127V/60Hz",1],
+  ["75999-02","AIR FRYER AF-36-FB 220V/60Hz",1],
+  ["75199-01","AIR FRYER AF-50-DV  127V/60Hz",1],
+  ["75198-02","AIR FRYER AF-50-DVI  220V/60Hz",3],
+  ["5666-03","AIR FRYER AFON-12L-BI 127V/60Hz",0],
+  ["75787-01","AIR FRYER OVEN AFDO-25L-FD 127V60HZ",2],
+  ["75787-02","AIR FRYER OVEN AFDO-25L-FD 220V/60Hz",1],
+  ["75310-01","APARADOR PELOS TR-01 BIVOLT",1],
+  ["79660-03","AQUECEDOR A AR A-08 127V/60Hz",3],
+  ["79660-02","AQUECEDOR A AR A-08 220V/60HZ",2],
+  ["74260-03","AQUECEDOR A OLEO A-06 127V/60Hz",2],
+  ["74260-04","AQUECEDOR A OLEO A-06 220V/60Hz",2],
+  ["72150-01","AQUECEDOR CERAMIC A-05 127V/60Hz",3],
+  ["72150-02","AQUECEDOR CERAMIC A-05 220V/60Hz",3],
+  ["75565-01","AQUECEDOR QUARTZO A-16 127V/60HZ",1],
+  ["75565-02","AQUECEDOR QUARTZO A-16 220V/60HZ",3],
+  ["79130-01","ASPIRADOR PO AP-15 127V/60Hz",1],
+  ["74247-01","ASPIRADOR PO AP-25 127V/60Hz",2],
+  ["79676-01","ASPIRADOR PO AP-36 127V/60Hz VERTICAL",2],
+  ["79676-02","ASPIRADOR PO AP-36 220V/60Hz VERTICAL",2],
+  ["75570-03","ASPIRADOR PO AP-40-B 127V/60Hz",1],
+  ["75570-05","ASPIRADOR PO AP-40-B 127V/60Hz",4],
+  ["75570-04","ASPIRADOR PO AP-40-B 220V/60Hz",2],
+  ["75570-06","ASPIRADOR PO AP-40-B 220V/60Hz",4],
+  ["75569-03","ASPIRADOR PO AP-40-R 127V/60Hz",2],
+  ["75569-04","ASPIRADOR PO AP-40-R 220V/60Hz",2],
+  ["75577-03","ASPIRADOR PO AP-41-BLI 127V/60Hz",2],
+  ["75577-04","ASPIRADOR PO AP-41-BLI 220V/60Hz",2],
+  ["75576-03","ASPIRADOR PO AP-41-GI 127V/60Hz",2],
+  ["75576-04","ASPIRADOR PO AP-41-GI 220V/60Hz",2],
+  ["74410-02","BALANÇA DIGITAL BL-03 BIVOLT",1],
+  ["76640-01","BALANÇA DIGITAL BL-05 BIVOLT",1],
+  ["2353-02","BATED PLANET BP-03-B 220V/60Hz TIGELA PP",1],
+  ["0860-21","BATEDEIRA B-12 220V/60HZ PRATICA",1],
+  ["75810-02","BODY GROOM BG-03 BIVOLT",1],
+  ["76410-02","BODY GROOM BG-04 BIVOLT",1],
+  ["76810-02","BODY GROOM BG-05 BIVOLT",4],
+  ["74656-02","BODY GROOM BG-06 BIVOLT",3],
+  ["74013-01","BODY GROOM BG-09 BIVOLT",2],
+  ["79805-01","BOOMBOX AWS-BBS-02-A BIVOLT",1],
+  ["71850-02","CAFETEIRA C-08 220V/60Hz",2],
+  ["72692-01","CAFETEIRA C-30-18X 127V/60Hz",2],
+  ["72692-02","CAFETEIRA C-30-18X 220V/60Hz",2],
+  ["79191-01","CAFETEIRA C-30-18X-FB 127V/60Hz",2],
+  ["79191-02","CAFETEIRA C-30-18X-FB 220V/60Hz",2],
+  ["72672-01","CAFETEIRA C-32-32X 127V/60Hz",2],
+  ["72672-02","CAFETEIRA C-32-32X 220V/60Hz",2],
+  ["72643-02","CAFETEIRA C-32-32X-R 220V/60Hz",2],
+  ["72652-01","CAFETEIRA C-33JT-24X 127V/60Hz",2],
+  ["72652-02","CAFETEIRA C-33JT-24X 220V/60H",2],
+  ["72642-01","CAFETEIRA C-34JI-15X 127V/60Hz",2],
+  ["72642-02","CAFETEIRA C-34JI-15X 220V/60Hz",2],
+  ["72685-02","CAFETEIRA C-35-18X 220V/60Hz",2],
+  ["72687-01","CAFETEIRA C-37JI-30X 127V/60Hz",2],
+  ["72687-02","CAFETEIRA C-37JI-30X 220V/60Hz",2],
+  ["74992-01","CAFETEIRA C-42-2X-BI 127V/60Hz",2],
+  ["74992-02","CAFETEIRA C-42-2X-BI 220V/60Hz",3],
+  ["74991-01","CAFETEIRA C-42-2X-RI 127V/60Hz 2 XÍCARAS",2],
+  ["74991-02","CAFETEIRA C-42-2X-RI 220V/60Hz 2 XÍCARAS",2],
+  ["72052-01","CAFETEIRA C-43-20X-SI 127V/60Hz",2],
+  ["72052-02","CAFETEIRA C-43-20X-SI 220V/60Hz",1],
+  ["74054-01","CAFETEIRA C-44-32X-SDI 127V/60Hz",2],
+  ["74054-02","CAFETEIRA C-44-32X-SDI 220V/60Hz",1],
+  ["74655-01","CAFETEIRA ESPRESSO C-21-E-CNP 127V/60Hz",2],
+  ["74655-02","CAFETEIRA ESPRESSO C-21-E-CNP 220V/60HZ",2],
+  ["74352-01","CAFETEIRA ESPRESSO CCL-01 127V/60HZ",4],
+  ["74352-02","CAFETEIRA ESPRESSO CCL-01 220V/60HZ",2],
+  ["75578-01","CAFETEIRA MONDIAL C-28-ECL 127V/60HZ",6],
+  ["75578-02","CAFETEIRA MONDIAL C-28-ECL 220V/60HZ",10],
+  ["7410-01","CARREGADOR DE BATERIA BT-01 BIVOLT",1],
+  ["79520-02","CHALEIRA CE-06 220V/60Hz",1],
+  ["79523-01","CHALEIRA ELETRICA CE-06-R 127V/60Hz",2],
+  ["79523-02","CHALEIRA ELETRICA CE-06-R 220V/60Hz",2],
+  ["79730-01","CHALEIRA ELETRICA CE-07 127V/60Hz",1],
+  ["79730-02","CHALEIRA ELETRICA CE-07 220V/60Hz",2],
+  ["75559-01","CHALEIRA ELETRICA CE-17 127V/60Hz",1],
+  ["75559-02","CHALEIRA ELETRICA CE-17 220V/60Hz",2],
+  ["75116-01","CHALEIRA ELETRICA CE-17-BC 127V/60Hz",1],
+  ["75116-02","CHALEIRA ELETRICA CE-17-BC 220V/60Hz",2],
+  ["76880-01","CHURRASQUEIRA ELETRICA CH-05 127V/60Hz",4],
+  ["76880-02","CHURRASQUEIRA ELETRICA CH-05 220V/60Hz",2],
+  ["78890-03","CHURRASQUEIRA ELETRICA CH-06 127V/60Hz",1],
+  ["78890-04","CHURRASQUEIRA ELETRICA CH-06 220V/60Hz",1],
+  ["76770-01","CHURRASQUEIRA ELETRICA CH-07 127V/60HZ P",2],
+  ["76770-02","CHURRASQUEIRA ELETRICA CH-07 220V/60HZ P",1],
+  ["75585-01","CLIMATIZADOR 45LITROS CL-45L 127V/60HZ",2],
+  ["75585-02","CLIMATIZADOR 45LITROS CL-45L 220V/60HZ",3],
+  ["75586-01","CLIMATIZADOR 65LITROS CL-65L 127V/60HZ",3],
+  ["75586-02","CLIMATIZADOR 65LITROS CL-65L 220V/60HZ",2],
+  ["71026-01","CLIMATIZADOR CL-03 127V/60Hz",2],
+  ["71026-02","CLIMATIZADOR CL-03 220V/60Hz",2],
+  ["75000-01","CLIMATIZADOR CL-07L 127V/60Hz",4],
+  ["75000-02","CLIMATIZADOR CL-07L 220V/60Hz",4],
+  ["75001-01","CLIMATIZADOR CL-25L 127V/60Hz",4],
+  ["75001-02","CLIMATIZADOR CL-25L 220V/60Hz",4],
+  ["75568-01","CONJUNTO PORTA CAPSULA CPC-DG",12],
+  ["75567-01","CONJUNTO PORTA CAPSULA CPC-NP",3],
+  ["70408-01","COOKTOP DE INDUÇÃO 2Q CTI-02 220V",2],
+  ["70409-01","COOKTOP DE INDUÇÃO 4Q CTI-03 220V",4],
+  ["71250-07","CORTADOR CABELO CR-02 127V/60Hz",0],
+  ["74015-01","CORTADOR DE CABELO CR-11 BIVOLT",2],
+  ["74440-01","CREPEIRA CP-01 127V/60Hz",2],
+  ["74560-01","CUPCAKE CK-01 127V/60Hz",2],
+  ["74560-02","CUPCAKE CK-01 220V/60Hz",2],
+  ["74592-01","EARBUD AWS-EB-01-B BIVOLT",0],
+  ["72301-01","EARBUD AWS-EB-04-B BIVOLT",2],
+  ["72302-01","EARBUD AWS-EB-04-P BIVOLT",2],
+  ["72303-01","EARBUD AWS-EB-04-W BIV",2],
+  ["74303-01","EARBUD AWS-EB-05-B BIVOLT",0],
+  ["71085-02","ESCOVA ROTATIVA ER-10 220V/60Hz",5],
+  ["70513-01","ESCOVA ROTATIVA ER-11-AR 127V/60Hz",1],
+  ["78986-02","ESCOVA ROTATIVA ERB-01 BIVOLT",4],
+  ["70005-01","ESCOVA ROTATIVA ERB-11-KR BIVOLT",8],
+  ["73841-02","ESCOVA SECADORA ES-01-IR BIVOLT",2],
+  ["74586-04","ESCOVA SECADORA ES-02-BI BIVOLT",2],
+  ["74562-03","ESCOVA SECADORA ES-05-BI BIVOLT",2],
+  ["9654-01","ESCOVA SECADORA ES-14 127V/60Hz",2],
+  ["9654-02","ESCOVA SECADORA ES-14 220V/60Hz",2],
+  ["70775-04","ESCOVA SECADORA ES-15 BIVOLT",1],
+  ["72109-05","ESCOVA SECADORA ES-50 BIVOLT",2],
+  ["73275-03","ESCOVA SECADORA ES-JU-01 BIVOLT",0],
+  ["73275-04","ESCOVA SECADORA ES-JU-01 BIVOLT",2],
+  ["72875-03","ESCOVA SECADORA ES-JU-02 BIVOLT",0],
+  ["73876-03","ESCOVA SECADORA ES-JU-03 BIVOLT",1],
+  ["73876-04","ESCOVA SECADORA ES-JU-03 BIVOLT",2],
+  ["74000-02","ESCOVA SECADORA SLIM ES-20 BIVOLT",1],
+  ["74001-02","ESCOVA SECADORA SLIM ES-21 BIVOLT",2],
+  ["4190-01","EXTRATOR E-10 BIVOLT TURBO 250W PREMIUM",1],
+  ["75020-01","FERRO A VAPOR F-32 127V/60Hz",6],
+  ["75020-02","FERRO A VAPOR F-32 220V/60Hz",1],
+  ["74660-01","FERRO A VAPOR F-40 127V/60Hz",5],
+  ["74660-02","FERRO A VAPOR F-40 220V/60Hz",6],
+  ["75302-01","FERRO A VAPOR F-53 127V/60Hz",6],
+  ["75302-02","FERRO A VAPOR F-53 220V/60Hz",2],
+  ["75289-01","FERRO SECO FS-01-BI  - 127V/60Hz",2],
+  ["75289-02","FERRO SECO FS-01-BI  - 220V/60Hz",1],
+  ["75973-01","FOGAO ELETRICO FE-03 127V/60Hz",1],
+  ["75973-02","FOGAO ELETRICO FE-03 220V/60Hz",2],
+  ["75974-01","FOGAO ELETRICO FE-04 127V/60Hz",2],
+  ["75974-02","FOGAO ELETRICO FE-04 220V/60Hz",1],
+  ["74589-01","FONE DE OUVIDO AWS-HP-01-B BIVOLT",0],
+  ["72101-01","FONE DE OUVIDO AWS-HP-03-B BIV",2],
+  ["72103-01","FONE DE OUVIDO AWS-HP-03-P BIV",2],
+  ["72102-01","FONE DE OUVIDO AWS-HP-03-W BIV",2],
+  ["72403-01","FONE DE OUVIDO AWS-HP-04-B BIVOLT",4],
+  ["74301-01","FONE DE OUVIDO AWS-HP-05-B BIVOLT",2],
+  ["75529-01","FORNO ELÉTRICO FR-42 127V/60Hz",2],
+  ["75529-02","FORNO ELÉTRICO FR-42 220V/60Hz",2],
+  ["75563-01","FORNO ELETRICO FR-52-W 127V/60Hz",2],
+  ["73111-01","FREEZER HORIZ -  FHZ-01-W150 - 127V/60Hz",1],
+  ["73111-02","FREEZER HORIZ -  FHZ-01-W150 - 220V/60Hz",1],
+  ["73112-02","FREEZER HORIZ -  FHZ-01-W320 - 220V/60Hz",1],
+  ["73118-01","FRIGOBAR 120L - FGB-01-B120 - 127V/60Hz",1],
+  ["73118-02","FRIGOBAR 120L - FGB-01-B120 - 220V/60Hz",1],
+  ["73115-01","FRIGOBAR 120L - FGB-01-W120 - 127V/60Hz",1],
+  ["73115-03","FRIGOBAR 120L - FGB-01-W120 - 127V/60Hz",1],
+  ["73115-02","FRIGOBAR 120L - FGB-01-W120 - 220V/60Hz",1],
+  ["73115-04","FRIGOBAR 120L - FGB-01-W120 - 220V/60Hz",1],
+  ["73116-01","FRIGOBAR 46L - FGB-01-B50 - 127V/60HZ",1],
+  ["73116-02","FRIGOBAR 46L - FGB-01-B50- 220V/60HZ",1],
+  ["73113-02","FRIGOBAR 46L - FGB-01-W50 - 220V/60HZ",1],
+  ["73113-04","FRIGOBAR 46L - FGB-01-W50 - 220V/60HZ",1],
+  ["73113-01","FRIGOBAR 46L- FGB-01-W50 127V/60HZ",1],
+  ["73113-03","FRIGOBAR 46L- FGB-01-W50 127V/60HZ",1],
+  ["73117-01","FRIGOBAR 73L - FGB-01-B80 - 127V/60HZ",1],
+  ["73117-02","FRIGOBAR 73L - FGB-01-B80 - 220V/60HZ",1],
+  ["73114-01","FRIGOBAR 73L - FGB-01-W80 - 127V/60HZ",1],
+  ["73114-02","FRIGOBAR 73L - FGB-01-W80 - 220V/60HZ",1],
+  ["73114-04","FRIGOBAR 73L - FGB-01-W80 - 220V/60HZ",1],
+  ["79980-01","FRITADEIRA FT-07 127V/60Hz",1],
+  ["79980-02","FRITADEIRA FT-07 220V/60Hz",2],
+  ["77180-03","FURADEIRA NFFI-07 127V/60Hz",1],
+  ["71470-07","GRILL G-03 127V/60Hz",1],
+  ["71470-08","GRILL G-03 220V/60Hz",1],
+  ["79912-01","GRILL G-03-RC 127V/60Hz",1],
+  ["79912-02","GRILL G-03-RC 220V/60Hz",2],
+  ["72730-07","GRILL G-04 127V/60Hz SMART GRILL",1],
+  ["72730-08","GRILL G-04 220V/60Hz SMART GRILL",2],
+  ["73090-01","GRILL G-07 127V/60Hz",1],
+  ["73090-02","GRILL G-07 220V/60Hz",1],
+  ["77360-01","GRILL WAFFLE GW-01 127V/60Hz",1],
+  ["77360-02","GRILL WAFFLE GW-01 220V/60Hz",1],
+  ["5475-01","LIQUIDIFICADOR L-1200 BI 127V/60Hz",3],
+  ["4678-01","LIQUIDIFICADOR L-1400-GI 127V/60Hz",3],
+  ["4945-06","LIQUIDIFICADOR L-900 FB 220V/60Hz",1],
+  ["78688-01","MAQUINA DE GELO MG-12-GI TURBO 127V/60Hz",2],
+  ["78688-03","MAQUINA DE GELO MG-12-GI TURBO 127V/60Hz",3],
+  ["78688-02","MAQUINA DE GELO MG-12-GI TURBO 220V/60Hz",1],
+  ["78688-04","MAQUINA DE GELO MG-12-GI TURBO 220V/60Hz",3],
+  ["2430-01","MICRO RETIFICA FMR-01 127V/60Hz",0],
+  ["72430-01","MICRO RETIFICA FMR-01 127V/60Hz",1],
+  ["78881-01","MICROFONE WIRELESS AWS-MIC-01 BIVOLT",1],
+  ["5617-02","MICRO-ONDAS MO-02-34-W 220V/60HZ .",1],
+  ["75581-01","MINI PROCESSADOR MP-05-B 127V/60HZ",2],
+  ["79925-01","MINI PROCESSADOR MP-16-B 127V/60Hz",2],
+  ["79925-02","MINI PROCESSADOR MP-16-B 220V/60Hz",2],
+  ["71045-01","MINI PROCESSADOR MP-16-R 127V/60Hz",2],
+  ["74985-02","MINI SPEAKER AWS-SP-01 BIV.",3],
+  ["72505-01","MINI SPEAKER AWS-SP-03-B BIV",1],
+  ["72404-01","MINI SPEAKER AWS-SP-03-BL BIV",2],
+  ["74305-01","MINI SPEAKER AWS-SP-04-LB BIV",2],
+  ["74306-01","MINI SPEAKER AWS-SP-05-LB BIV.",2],
+  ["73301-01","MINI SPEAKER AWS-SP-06-B BIV",3],
+  ["73302-01","MINI SPEAKER AWS-SP-07 BIV",2],
+  ["77058-03","MIXER M-14 127V/60Hz",4],
+  ["77058-04","MIXER M-14 220V/60Hz",4],
+  ["72047-01","MIXER M-15-B 127V/60Hz",2],
+  ["72047-02","MIXER M-15-B 220V/60Hz",2],
+  ["75580-01","MOEDOR DE CAFE MCF-01-BI 127V/60HZ",2],
+  ["75580-02","MOEDOR DE CAFE MCF-01-BI 220V/60HZ",2],
+  ["72181-01","MOEDOR DE CARNE MC-03 127V/60Hz",2],
+  ["72181-02","MOEDOR DE CARNE MC-03 220V/60Hz",1],
+  ["0935-28","MOTOR (REDUÇÃO DE RPM) [V-30] 220V",0],
+  ["0935-09","MOTOR 7512 127V - VENTILADOR 30CM",0],
+  ["9470-01","MULTIPROCESSADOR MP-13 127V/60Hz",1],
+  ["76850-01","OMELETEIRA ELETRICA OM-02 127V/60Hz",1],
+  ["76850-02","OMELETEIRA ELETRICA OM-02 220V/60Hz",2],
+  ["70476-01","OMELETEIRA ELETRICA OM-04-BI 127V/60Hz",1],
+  ["70476-04","OMELETEIRA ELETRICA OM-04-BI 220V/60Hz",2],
+  ["70576-01","OMELETEIRA ELÉTRICA OM-04-RI 127V/60Hz",1],
+  ["70576-04","OMELETEIRA ELÉTRICA OM-04-RI 220V/60Hz",2],
+  ["74166-02","PAN ELET. PRESS. PE-48-5L-I 220V/60Hz",2],
+  ["74885-01","PAN ELET.PRESS. PE-60-6L-RI 127V/60HZ",4],
+  ["74885-02","PAN ELET.PRESS. PE-60-6L-RI 220V/60HZ",1],
+  ["76549-01","PAN. ELET. PRESS. PE-60-6L-I 127V/60HZ",2],
+  ["76549-02","PAN. ELET. PRESS. PE-60-6L-I 220V/60HZ",2],
+  ["74152-01","PANELA ELETR DE ARROZ PE-42-10X127V/60Hz",2],
+  ["74152-02","PANELA ELETR DE ARROZ PE-42-10X220V/60Hz",2],
+  ["74153-01","PANELA ELETR DE ARROZ PE-43-6X 127V/60Hz",2],
+  ["74153-02","PANELA ELETR DE ARROZ PE-43-6X 220V/60Hz",1],
+  ["74154-01","PANELA ELETR DE ARROZ PE-44-10X127V/60Hz",2],
+  ["74154-02","PANELA ELETR DE ARROZ PE-44-10X220V/60Hz",2],
+  ["74156-01","PANELA ELETR DE ARROZ PE-45-6X 127V/60Hz",2],
+  ["74156-02","PANELA ELETR DE ARROZ PE-45-6X 220V/60Hz",2],
+  ["74157-01","PANELA ELETR DE ARROZ PE-46-10X127V/60Hz",2],
+  ["74159-01","PANELA ELETR PRESS  PE-47-3L-I 127V/60Hz",2],
+  ["74159-02","PANELA ELETR PRESS  PE-47-3L-I 220V/60Hz",2],
+  ["74210-05","PANELA ELETRICA ARROZ PE-10 127V/60Hz",2],
+  ["74210-06","PANELA ELETRICA ARROZ PE-10 220V/60Hz",2],
+  ["70002-01","PANELA ELETRICA BLACK PE-30-10X 127V",1],
+  ["70002-02","PANELA ELETRICA BLACK PE-30-10X 220V",2],
+  ["70001-01","PANELA ELETRICA BLACK PE-30-6X 127V",2],
+  ["70001-02","PANELA ELETRICA BLACK PE-30-6X 220V",2],
+  ["74166-01","PANELA ELÉTRICA DE PRESSÃO PE-48-5L-I",2],
+  ["77380-01","PANELA ELETRICA GRILL PE-28 127V/60Hz",1],
+  ["77380-02","PANELA ELETRICA GRILL PE-28 220V/60Hz",2],
+  ["79914-01","PANELA ELETRICA GRILL PE-49 127V/60Hz",2],
+  ["79914-02","PANELA ELETRICA GRILL PE-49 220V/60Hz",2],
+  ["79913-01","PANELA ELETRICA GRILL PE-49-RC 127V/60Hz",2],
+  ["79913-02","PANELA ELETRICA GRILL PE-49-RC 220V/60Hz",1],
+  ["72525-01","PANELA ELETRICA NPE-05-5X 127V/60Hz",1],
+  ["72525-02","PANELA ELETRICA NPE-05-5X 220V/60Hz",2],
+  ["73535-01","PANELA ELETRICA NPE-08-5X 127V/60Hz",0],
+  ["73535-02","PANELA ELETRICA NPE-08-5X 220V/60Hz",2],
+  ["74155-03","PANELA ELETRICA PRESSAO PE-38 127V/60Hz",2],
+  ["74165-03","PANELA ELETRICA PRESSAO PE-39 127V/60Hz",4],
+  ["74165-04","PANELA ELETRICA PRESSAO PE-39 220V/60Hz",2],
+  ["74175-03","PANELA ELETRICA PRESSAO PE-40 127V/60Hz",2],
+  ["74175-04","PANELA ELETRICA PRESSAO PE-40 220V/60Hz",2],
+  ["71625-02","PANIFICADORA NPF-53 220V/60Hz",2],
+  ["77612-01","PARAF FPF-05M BIVOLT KIT OFICINA 4,8V",0],
+  ["0102-02","PARAFUSO PLASTIC PH PL 3,5 X 12MM ZC",0],
+  ["72407-01","PARTY BOX PBX-350 BIVOLT",0],
+  ["74852-01","PARTY BOX PBX-800 BIVOLT",2],
+  ["78670-01","PERSONAL BLENDER DG-01 127V/60Hz",2],
+  ["78670-02","PERSONAL BLENDER DG-01 220V/60Hz",1],
+  ["79075-01","PIPOQUEIRA PP-03 127V/60Hz",1],
+  ["79075-02","PIPOQUEIRA PP-03 220V/60Hz",1],
+  ["79955-01","PIPOQUEIRA PP-05 127V/60Hz",2],
+  ["79955-02","PIPOQUEIRA PP-05 220V/60Hz",1],
+  ["72026-02","PIPOQUEIRA PP-3C 220V/60Hz",3],
+  ["72415-01","PLAINA ELÉTRICA FPL-02 127V/60Hz",2],
+  ["72415-02","PLAINA ELÉTRICA FPL-02 220V/60Hz",2],
+  ["75895-01","PRANCHA ALISADORA P-30T BIVOLT",0],
+  ["74376-01","PRANCHA ALISADORA P-JU-01 BIVOLT",2],
+  ["73877-01","PRANCHA ALISADORA P-JU-03 BIVOLT",2],
+  ["72625-05","PRESS GRILL PG-01 127V/60Hz",2],
+  ["72625-06","PRESS GRILL PG-01 220V/60Hz",2],
+  ["72626-03","PRESS GRILL PG-01-180 127V/60HZ",2],
+  ["72626-04","PRESS GRILL PG-01-180 220V/60HZ",2],
+  ["70007-01","PRESS GRILL PG-01-CL 127V/60Hz",4],
+  ["72845-03","PRESS GRILL PG-02 127V/60Hz",1],
+  ["72845-04","PRESS GRILL PG-02 220V/60Hz",1],
+  ["72222-03","PRESS GRILL RED CER PG-01-RC 127V/60Hz",1],
+  ["72222-04","PRESS GRILL RED CER PG-01-RC 220V/60Hz",2],
+  ["70009-01","PRESS GRILL RED CER PG-01-RC-CL 127V/60Hz",4],
+  ["70009-02","PRESS GRILL RED CER PG-01-RC-CL 220V/60Hz",4],
+  ["72510-01","SANDUICHEIRA S-07 127V/60Hz",1],
+  ["72510-02","SANDUICHEIRA S-07 220V/60Hz",1],
+  ["74050-01","SANDUICHEIRA S-12 127V/60Hz",1],
+  ["74050-02","SANDUICHEIRA S-12 220V/60Hz",1],
+  ["78641-01","SANDUICHEIRA S-19 127V/60Hz",2],
+  ["78641-02","SANDUICHEIRA S-19 220V/60Hz",1],
+  ["78642-03","SANDUICHEIRA S-20 127V/60Hz",2],
+  ["78642-04","SANDUICHEIRA S-20 220V/60Hz",1],
+  ["73878-02","SEC CABELOS PROF SCP-JU-03 220V/60Hz",2],
+  ["74008-01","SEC. CABELO SC-20-BI BIVOLT/60Hz",2],
+  ["74009-01","SEC. CABELO SC-21-BI BIVOLT/60Hz",2],
+  ["74019-02","SECADOR BLDC SCP-01-US 220V/60HZ",2],
+  ["74019-01","SECADOR BLDC SCP-01-US 220V/60Hz",2],
+  ["74018-01","SECADOR BLDC SCP-JU-04-US 127V/60HZ",4],
+  ["74018-02","SECADOR BLDC SCP-JU-04-US 220V/60HZ",4],
+  ["74080-01","SECADOR CABELO SC-10 BIVOLT",0],
+  ["74071-01","SECADOR DE CABELO SC-13-BI 2200W",2],
+  ["78010-01","SECADOR DE CABELOS SC-32-BI BIVOLT/60Hz",2],
+  ["78010-02","SECADOR DE CABELOS SC-32-BI BIVOLT/60Hz",1],
+  ["78011-01","SECADOR DE CABELOS SC-37-BI BIVOLT/60Hz",2],
+  ["78011-02","SECADOR DE CABELOS SC-37-BI BIVOLT/60Hz",2],
+  ["70615-02","SECADOR DE CABELOS SC-41 220V/60Hz",0],
+  ["75112-01","SECADOR DE CABELOS SCT-JU-03 BIVOLT",4],
+  ["73658-01","SECADOR MULTIF SM-01-BLDC-CP 127V/60HZ",3],
+  ["73658-02","SECADOR MULTIF SM-01-BLDC-CP 220V/60HZ",3],
+  ["78569-01","SECADOR MULTIF SM-01-BLDC-GR 127V/60HZ",1],
+  ["78569-02","SECADOR MULTIF SM-01-BLDC-GR 220V/60HZ",1],
+  ["78570-01","SECADOR MULTIF SM-01-BLDC-SP 127V/60HZ",2],
+  ["78570-02","SECADOR MULTIF SM-01-BLDC-SP 220V/60HZ",1],
+  ["0012-80","SUPORTE PLÁSTICO PRETO [ES]",0],
+  ["72501-01","TORRE DE SOM TM-2200-B BIV",2],
+  ["71802-01","TOSTADOR DE PAES T-18 127V/60Hz",2],
+  ["71802-02","TOSTADOR DE PAES T-18 220V/60Hz",2],
+  ["74645-01","TOSTADOR PAES T-13 127V/60Hz",1],
+  ["74645-02","TOSTADOR PAES T-13 220V/60Hz",1],
+  ["74308-01","TV 24\" PORTATIL AWS-TV-24-01-G BIV",2],
+  ["72771-01","UMIDIFICADOR DE AR NUA-02 BIVOLT",3],
+  ["76490-01","UMIDIFICADOR DE AR UA-07 BIVOLT",3],
+  ["75494-01","VAPORIZADOR VP-07 127V/60Hz",1],
+  ["75494-02","VAPORIZADOR VP-07 220V/60Hz",1],
+  ["75668-01","VAPORIZADOR VP-09 127V/60Hz",1],
+  ["75668-02","VAPORIZADOR VP-09 220V/60Hz",2],
+  ["75582-01","VAPORIZADOR VP-10-DB BIVOLT/60HZ",1],
+  ["3033-06","VENT 40CM VTX-40C-8P 220V/60Hz COLUNA",2],
+  ["6664-02","VENT 50CM PRO NVP-PRO-50 220V/60Hz",3],
+  ["75002-01","VENTILADOR TORRE  VTR-01-B 127V/60Hz",1],
+  ["75002-02","VENTILADOR TORRE  VTR-01-B 220V/60Hz",2]
+];
+
+// ── STATE ────────────────────────────────────────────
+const AVATAR_MALE   = 'data:image/png;base64,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';
+const AVATAR_FEMALE = 'data:image/png;base64,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';
+let db = null, products = [], users = [], currentUser = null;
+let pagView = 1, pagManage = 1;
+
+const PER_PAGE = 25;
+// Sort state for each table
+let sortView   = { field: 'code', dir: 'asc' };
+let sortManage = { field: 'code', dir: 'asc' };
+
+// ── HELPERS ──────────────────────────────────────────
+function fmtDate(d) {
+  const dt = d && d.toDate ? d.toDate() : new Date(d);
+  return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+function setSyncStatus(s) {
+  const dot = document.getElementById('sync-dot'), txt = document.getElementById('sync-text');
+  dot.className = 'sync-dot' + (s==='syncing'?' syncing':s==='error'?' error':'');
+  txt.textContent = s==='ok'?'Sincronizado':s==='syncing'?'Salvando...':'Erro de conexão';
+}
+function showLoading(msg) {
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loading-text').textContent = msg;
+}
+function hideLoading() { document.getElementById('loading-screen').style.display = 'none'; }
+
+// ── FIREBASE INIT ────────────────────────────────────
+async function connectFirebase() {
+  showLoading('Conectando ao Firebase...');
+  try {
+    const app = initializeApp(FIREBASE_CONFIG);
+    db = getFirestore(app);
+    showLoading('Verificando banco de dados...');
+    const snap = await getDocs(collection(db, 'users'));
+    if (snap.empty) {
+      await addDoc(collection(db, 'users'), {
+        name: 'Administrador', username: 'admin', password: 'lab2024',
+        funcao: 'Administrador', role: 'admin', createdAt: serverTimestamp()
+      });
+    }
+    hideLoading();
+    document.getElementById('auth-screen').style.display = 'flex';
+    startListeners();
+  } catch(e) {
+    hideLoading();
+    document.getElementById('auth-screen').style.display = 'flex';
+    toast('Erro ao conectar: ' + e.message, 'red');
+  }
+}
+
+// ── REAL-TIME LISTENERS ──────────────────────────────
+function startListeners() {
+  onSnapshot(query(collection(db,'products'), orderBy('model')), snap => {
+    products = snap.docs.map(d => ({id:d.id,...d.data()}));
+    if (currentUser) { renderStats(); renderView(); renderManage(); }
+    setSyncStatus('ok');
+    const imp = document.getElementById('import-section');
+    if (imp) imp.style.display = products.length === 0 ? 'block' : 'none';
+  }, () => setSyncStatus('error'));
+
+  onSnapshot(collection(db,'users'), snap => {
+    users = snap.docs.map(d => ({id:d.id,...d.data()}));
+    if (currentUser) renderUsers();
+  });
+}
+
+// ── AUTH ─────────────────────────────────────────────
+window.doLogin = function() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const found = users.find(x => x.username === u && x.password === p);
+  if (!found) { document.getElementById('auth-error').style.display = 'block'; return; }
+  currentUser = found;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const avatarEl = document.getElementById('user-avatar');
+  if (found.avatar) {
+    avatarEl.innerHTML = `<img src="${found.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    avatarEl.innerHTML = '';
+    avatarEl.textContent = found.name[0].toUpperCase();
+  }
+  document.getElementById('user-name-display').textContent = 'Olá, ' + found.name;
+  document.getElementById('user-funcao-display').textContent = found.funcao || (found.role==='admin'?'Administrador':found.role==='editor'?'Editor':'—');
+  document.getElementById('user-badge').innerHTML = found.role === 'admin' ? '<span class="admin-badge">ADMIN</span>' : '';
+  const isAdmin = found.role === 'admin';
+  // Rule: Admin sees everything. Editor sees everything EXCEPT Usuários.
+  // Any new card added to the home will be visible to editors automatically.
+  document.querySelectorAll('.menu-card').forEach(card => {
+    card.style.display = '';
+  });
+  // Only Usuários is restricted to admin only
+  document.getElementById('card-usuarios').style.display = isAdmin ? '' : 'none';
+  goHome(); renderAll();
+};
+
+window.doLogout = function() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('auth-error').style.display = 'none';
+};
+
+// ── NAVIGATION ───────────────────────────────────────
+window.goHome = function() {
+  document.getElementById('page-home').style.display = 'flex';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById('btn-back').classList.remove('visible');
+};
+window.switchTab = function(tab) {
+  document.getElementById('page-home').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  const t = document.getElementById('page-' + tab);
+  if (t) t.style.display = 'block';
+  document.getElementById('btn-back').classList.add('visible');
+  if (tab === 'refugos') loadRefugos();
+};
+
+// ── RENDER ───────────────────────────────────────────
+function renderAvatarEl(u, size=38) {
+  if (u.avatar) {
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,var(--accent2),var(--accent))"><img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.38)}px;font-weight:800;color:#fff;flex-shrink:0">${(u.name||'?')[0].toUpperCase()}</div>`;
+}
+
+function renderAll() { renderStats(); renderView(); renderManage(); renderUsers(); }
+function getSorted(data, sort) {
+  return [...data].sort((a, b) => {
+    const va = (a[sort.field]||'').toString().toLowerCase();
+    const vb = (b[sort.field]||'').toString().toLowerCase();
+    return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+}
+
+function updateSortHeaders(prefix, sort) {
+  const labels = { code: 'Código', model: 'Modelo' };
+  ['code','model'].forEach(f => {
+    const th = document.getElementById(`th-${prefix}-${f}`);
+    if (!th) return;
+    th.className = 'sortable';
+    if (sort.field === f) {
+      th.classList.add(sort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+      th.textContent = labels[f] + (sort.dir === 'asc' ? ' ↑' : ' ↓');
+    } else {
+      th.textContent = labels[f] + ' ↕';
+    }
+    // Restore data attributes after textContent change
+    th.dataset.sort = prefix;
+    th.dataset.field = f;
+  });
+}
+
+function getFiltered(q) {
+  const s = (q||'').toLowerCase();
+  return products.filter(p => p.code.toLowerCase().includes(s) || p.model.toLowerCase().includes(s));
+}
+function renderStats() {
+  const total = products.length, totalQty = products.reduce((a,b)=>a+(b.qty||0),0), zero = products.filter(p=>(p.qty||0)===0).length;
+  document.getElementById('stats-view').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total de Produtos</div><div class="stat-value blue">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Unidades em Estoque</div><div class="stat-value green">${totalQty}</div></div>
+    <div class="stat-card"><div class="stat-label">Produtos Zerados</div><div class="stat-value" style="color:var(--red)">${zero}</div></div>`;
+}
+function qtyBadge(qty) {
+  const cls = qty===0?'zero':qty<=2?'warn':'ok';
+  return `<span class="qty-badge ${cls}">${qty}</span>`;
+}
+function renderView() {
+  const q = document.getElementById('search-view').value;
+  const data = getSorted(getFiltered(q), sortView);
+  updateSortHeaders('view', sortView);
+  const pages = Math.max(1, Math.ceil(data.length/PER_PAGE));
+  if (pagView > pages) pagView = pages;
+  const slice = data.slice((pagView-1)*PER_PAGE, pagView*PER_PAGE);
+  document.getElementById('tbody-view').innerHTML = slice.length
+    ? slice.map(p=>`<tr style="cursor:pointer" onclick="openProductDetail('${p.id}')" title="Clique para ver histórico"><td><span class="code-cell">${p.code}</span></td><td>${p.model}</td><td>${qtyBadge(p.qty||0)}</td></tr>`).join('')
+    : `<tr class="empty-row"><td colspan="3">Nenhum produto encontrado.</td></tr>`;
+  renderPag('pag-view', pagView, pages, data.length, n=>{pagView=n;renderView();});
+  renderStats();
+}
+function renderManage() {
+  const q = document.getElementById('search-manage').value;
+  const data = getSorted(getFiltered(q), sortManage);
+  updateSortHeaders('manage', sortManage);
+  const pages = Math.max(1, Math.ceil(data.length/PER_PAGE));
+  if (pagManage > pages) pagManage = pages;
+  const slice = data.slice((pagManage-1)*PER_PAGE, pagManage*PER_PAGE);
+  const imp = document.getElementById('import-section');
+  if (imp) imp.style.display = products.length===0 ? 'block' : 'none';
+  document.getElementById('tbody-manage').innerHTML = slice.length
+    ? slice.map(p=>`<tr><td><span class="code-cell">${p.code}</span></td><td>${p.model}</td><td>${qtyBadge(p.qty||0)}</td><td><div class="actions-cell">
+        <button class="btn-action btn-edit" onclick="openEdit('${p.id}')">✏️ Editar</button>
+        <button class="btn-action btn-in" onclick="openEntrada('${p.id}')">📥 Entrada</button>
+        <button class="btn-action btn-out" onclick="openSaida('${p.id}')">📤 Saída</button>
+        <button class="btn-action btn-del" onclick="confirmDel('${p.id}')">🗑 Remover</button>
+      </div></td></tr>`).join('')
+    : `<tr class="empty-row"><td colspan="4">${products.length===0?'Banco vazio — importe os produtos acima.':'Nenhum produto encontrado.'}</td></tr>`;
+  renderPag('pag-manage', pagManage, pages, data.length, n=>{pagManage=n;renderManage();});
+}
+// Store pagination callbacks globally so inline onclick can reach them from module scope
+window.__pagFns = {};
+function renderPag(id, cur, total, count, fn) {
+  const el = document.getElementById(id);
+  if (total<=1) { el.innerHTML=''; return; }
+  window.__pagFns[id] = fn;
+  const start=(cur-1)*PER_PAGE+1, end=Math.min(cur*PER_PAGE,count);
+  let btns='';
+  for(let i=1;i<=total;i++) {
+    if(total>10&&i>3&&i<total-2&&Math.abs(i-cur)>2) { if(i===4) btns+=`<span style="color:var(--muted);padding:0 4px">…</span>`; continue; }
+    btns+=`<button class="btn-page ${i===cur?'active':''}" onclick="window.__pagFns['${id}'](${i})">${i}</button>`;
+  }
+  el.innerHTML=`<span class="pagination-info">Mostrando ${start}–${end} de ${count}</span><div class="pagination-btns">
+    <button class="btn-page" onclick="window.__pagFns['${id}'](${cur-1})" ${cur<=1?'disabled':''}>‹</button>${btns}
+    <button class="btn-page" onclick="window.__pagFns['${id}'](${cur+1})" ${cur>=total?'disabled':''}>›</button></div>`;
+}
+function renderUsers() {
+  const isAdmin = currentUser && currentUser.role==='admin';
+  document.getElementById('users-grid').innerHTML = users.map(u=>`
+    <div class="user-card">
+      <div class="user-info">
+        ${renderAvatarEl(u, 40)}
+        <div>
+          <div class="user-name">${u.name} ${u.role==='admin'?'<span class="admin-badge">ADMIN</span>':u.role==='editor'?'<span class="admin-badge" style="background:rgba(62,207,142,.15);border-color:rgba(62,207,142,.3);color:var(--green)">EDITOR</span>':''}</div>
+          <div class="user-email">${u.funcao||'—'}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div class="user-creds">Login: <span>${u.username}</span> &nbsp;|&nbsp; Senha: <span>${u.password}</span></div>
+        ${isAdmin ? `<button class="btn-action btn-edit" onclick="editarAvatar('${u.id}')">📷 Foto</button>` : ''}
+        ${u.username!=='admin'&&isAdmin?`<button class="btn-action btn-del" onclick="deleteUser('${u.id}')">🗑 Remover</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ── PRODUCT DETAIL ───────────────────────────────────
+window.openProductDetail = async function(id) {
+  const p = products.find(x=>x.id===id); if(!p) return;
+  const modal = document.getElementById('modal');
+  modal.classList.add('modal-wide');
+  openModal(`
+    <div class="product-detail-header">
+      <div class="product-detail-badge">${p.code}</div>
+      <div class="product-detail-info">
+        <div class="product-detail-model">${p.model}</div>
+        <div>${qtyBadge(p.qty||0)} <span style="font-size:12px;color:var(--muted);margin-left:6px">unidades em estoque</span></div>
+      </div>
+    </div>
+    <div class="history-title">📋 Histórico de Movimentações</div>
+    <div class="history-list" id="history-list"><div class="history-empty">Carregando...</div></div>`);
+  try {
+    const snap = await getDocs(query(collection(db,'movements'), where('productId','==',id)));
+    const items = snap.docs.map(d=>d.data())
+      .sort((a,b) => {
+        const da = a.date && a.date.toDate ? a.date.toDate() : new Date(a.date || 0);
+        const db_ = b.date && b.date.toDate ? b.date.toDate() : new Date(b.date || 0);
+        return db_ - da;
+      });
+    const listEl = document.getElementById('history-list');
+    if (!listEl) return;
+    listEl.innerHTML = items.length ? items.map(m=>`
+      <div class="history-item">
+        <span class="history-icon">${m.type==='in'?'📥':'📤'}</span>
+        <div class="history-details">
+          <div class="history-action">${m.type==='in'?'Entrada':'Saída'}</div>
+          <div class="history-who">por ${m.user||'—'}</div>
+        </div>
+        <span class="history-qty ${m.type}">${m.type==='in'?'+':'−'}${m.qty}</span>
+        <span class="history-date">${fmtDate(m.date)}</span>
+      </div>`).join('') : '<div class="history-empty">Nenhuma movimentação registrada ainda.</div>';
+  } catch(e) {
+    const listEl = document.getElementById('history-list');
+    if (listEl) listEl.innerHTML = '<div class="history-empty">Erro ao carregar histórico.</div>';
+  }
+};
+
+// ── MODALS ───────────────────────────────────────────
+function openModal(html) { document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').classList.add('open'); }
+window.closeModal = function() { document.getElementById('modal-overlay').classList.remove('open'); document.getElementById('modal').classList.remove('modal-wide'); };
+
+window.openModalNovoProduto = function() {
+  openModal(`<div class="modal-title">Novo Produto</div><div class="modal-sub">Adicione um novo produto ao laboratório.</div>
+    <div class="form-group"><label>Código</label><input id="m-code" placeholder="ex: 12345-01" /></div>
+    <div class="form-group"><label>Modelo / Descrição</label><input id="m-model" placeholder="ex: CAFETEIRA C-08 220V" /></div>
+    <div class="form-group"><label>Quantidade Inicial</label><input id="m-qty" type="number" min="0" value="0" /></div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmNovoProduto()">Adicionar Produto</button></div>`);
+};
+window.confirmNovoProduto = async function() {
+  const code=document.getElementById('m-code').value.trim(), model=document.getElementById('m-model').value.trim(), qty=parseInt(document.getElementById('m-qty').value)||0;
+  if(!code||!model) { toast('Preencha todos os campos!','red'); return; }
+  setSyncStatus('syncing');
+  await addDoc(collection(db,'products'),{code,model,qty,createdAt:serverTimestamp()});
+  closeModal(); toast('Produto adicionado!','green');
+};
+
+window.openEdit = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  openModal(`<div class="modal-title">Editar Produto</div><div class="modal-sub"><span class="code-cell">${p.code}</span></div>
+    <div class="form-group"><label>Código</label><input id="m-code" value="${p.code}" /></div>
+    <div class="form-group"><label>Modelo / Descrição</label><input id="m-model" value="${p.model}" /></div>
+    <div class="form-group"><label>Quantidade Atual</label><input id="m-qty" type="number" min="0" value="${p.qty||0}" /></div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmEdit('${id}')">Salvar Alterações</button></div>`);
+};
+window.confirmEdit = async function(id) {
+  const code=document.getElementById('m-code').value.trim(), model=document.getElementById('m-model').value.trim(), qty=parseInt(document.getElementById('m-qty').value)||0;
+  setSyncStatus('syncing');
+  await updateDoc(doc(db,'products',id),{code,model,qty});
+  closeModal(); toast('Produto atualizado!','green');
+};
+
+window.openEntrada = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const today=new Date().toISOString().slice(0,10);
+  openModal(`<div class="modal-title">📥 Entrada de Produto</div><div class="modal-sub">${p.model}</div>
+    <div class="saldo-display"><div class="saldo-label">Saldo Atual</div><div class="saldo-value" style="color:var(--green)">${p.qty||0}</div></div>
+    <div class="form-group"><label>Quantidade de Entrada</label><input id="m-qty" type="number" min="1" value="1" /></div>
+    <div class="form-group"><label>Data da Entrada</label><input id="m-date" type="date" value="${today}" /></div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--green),#2ab87a)" onclick="confirmEntrada('${id}')">Confirmar Entrada</button></div>`);
+};
+window.confirmEntrada = async function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const n=parseInt(document.getElementById('m-qty').value)||0, dateVal=document.getElementById('m-date').value;
+  if(n<=0) { toast('Quantidade inválida!','red'); return; }
+  if(!dateVal) { toast('Informe a data!','red'); return; }
+  setSyncStatus('syncing');
+  const batch=writeBatch(db);
+  batch.update(doc(db,'products',id),{qty:(p.qty||0)+n});
+  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'in',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
+  await batch.commit();
+  closeModal(); toast(`+${n} unidades adicionadas. Novo saldo: ${(p.qty||0)+n}`,'green');
+};
+
+window.openSaida = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const today=new Date().toISOString().slice(0,10);
+  openModal(`<div class="modal-title">📤 Retirada de Produto</div><div class="modal-sub">${p.model}</div>
+    <div class="saldo-display"><div class="saldo-label">Saldo Atual</div><div class="saldo-value" style="color:var(--yellow)">${p.qty||0}</div></div>
+    <div class="form-group"><label>Quantidade Retirada</label><input id="m-qty" type="number" min="1" max="${p.qty||0}" value="1" /></div>
+    <div class="form-group"><label>Data da Retirada</label><input id="m-date" type="date" value="${today}" /></div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--yellow),#e5a820);color:#111" onclick="confirmSaida('${id}')">Confirmar Retirada</button></div>`);
+};
+window.confirmSaida = async function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const n=parseInt(document.getElementById('m-qty').value)||0, dateVal=document.getElementById('m-date').value;
+  if(n<=0) { toast('Quantidade inválida!','red'); return; }
+  if(!dateVal) { toast('Informe a data!','red'); return; }
+  if(n>(p.qty||0)) { toast(`Saldo insuficiente! Disponível: ${p.qty||0}`,'red'); return; }
+  setSyncStatus('syncing');
+  const batch=writeBatch(db);
+  batch.update(doc(db,'products',id),{qty:(p.qty||0)-n});
+  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'out',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
+  await batch.commit();
+  closeModal(); toast(`−${n} unidades retiradas. Saldo restante: ${(p.qty||0)-n}`,'green');
+};
+
+window.confirmDel = function(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  openModal(`<div class="modal-title">🗑 Remover Produto</div><div class="modal-sub">Esta ação não pode ser desfeita.</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
+      <div style="font-family:var(--mono);color:var(--accent);font-size:13px;margin-bottom:4px">${p.code}</div>
+      <div style="font-size:14px">${p.model}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:4px">Quantidade atual: ${p.qty||0}</div>
+    </div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" style="background:var(--red)" onclick="doDelete('${id}')">Sim, Remover</button></div>`);
+};
+window.doDelete = async function(id) {
+  setSyncStatus('syncing');
+  await deleteDoc(doc(db,'products',id));
+  closeModal(); toast('Produto removido.','red');
+};
+
+// ── USUÁRIOS ─────────────────────────────────────────
+window.openModalNovoUsuario = function() {
+  openModal(`<div class="modal-title">Novo Usuário</div><div class="modal-sub">Crie credenciais de acesso para um novo colaborador.</div>
+
+    <div class="avatar-upload-wrap">
+      <div class="avatar-preview" id="avatar-preview-el" onclick="document.getElementById('avatar-input').click()">
+        <img id="avatar-preview-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+        <span id="avatar-initial">?</span>
+        <div class="avatar-overlay">📷</div>
+      </div>
+      <div class="avatar-hint">Avatar definido pelo gênero • ou clique para personalizar</div>
+      <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(event)">
+    </div>
+
+    <div class="form-group"><label>Nome Completo</label><input id="m-name" placeholder="ex: João Silva" oninput="document.getElementById('avatar-initial').textContent=this.value[0]||'?'" /></div>
+    <div class="form-group"><label>Gênero</label>
+      <select id="m-genero" onchange="setAvatarByGenero()" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:14px;outline:none">
+        <option value="">Selecione...</option>
+        <option value="masculino">👨‍💻 Masculino</option>
+        <option value="feminino">👩‍💻 Feminino</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Usuário (login)</label><input id="m-user" placeholder="ex: joao.silva" /></div>
+    <div class="form-group"><label>Senha</label><input id="m-pw" type="text" placeholder="mínimo 3 caracteres" /></div>
+    <div class="form-group"><label>Função</label><input id="m-funcao" placeholder="ex: Técnico, Analista..." /></div>
+    <div class="form-group"><label>Perfil</label>
+      <select id="m-role" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:14px;outline:none">
+        <option value="admin">Administrador — acesso total</option>
+        <option value="editor">Editor — Produtos no LAB e Gerenciador</option>
+      </select>
+    </div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-modal-confirm" onclick="confirmNovoUsuario()">Criar Usuário</button></div>`);
+};
+
+window.setAvatarByGenero = function() {
+  const genero = document.getElementById('m-genero')?.value;
+  if (!genero) return;
+  const b64 = genero === 'masculino' ? AVATAR_MALE : AVATAR_FEMALE;
+  window._avatarB64 = b64;
+  const img = document.getElementById('avatar-preview-img');
+  const initial = document.getElementById('avatar-initial');
+  if (img) { img.src = b64; img.style.display = 'block'; }
+  if (initial) initial.style.display = 'none';
+};
+
+window.previewAvatar = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Resize to 120x120 using canvas
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 120; canvas.height = 120;
+      const ctx = canvas.getContext('2d');
+      // Draw circular crop
+      ctx.beginPath();
+      ctx.arc(60, 60, 60, 0, Math.PI*2);
+      ctx.clip();
+      // Scale and center
+      const scale = Math.max(120/img.width, 120/img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (120-w)/2, (120-h)/2, w, h);
+      const b64 = canvas.toDataURL('image/jpeg', 0.82);
+      window._avatarB64 = b64;
+      // Update preview
+      const prev = document.getElementById('avatar-preview-el');
+      if (prev) prev.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="avatar-overlay">📷</div>`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+window.confirmNovoUsuario = async function() {
+  const name=document.getElementById('m-name').value.trim(), username=document.getElementById('m-user').value.trim(),
+        password=document.getElementById('m-pw').value, funcao=document.getElementById('m-funcao').value.trim(),
+        role=document.getElementById('m-role').value;
+  if(!name||!username||!password) { toast('Preencha todos os campos!','red'); return; }
+  if(password.length<3) { toast('Senha muito curta (mín. 3 caracteres)!','red'); return; }
+  if(users.find(u=>u.username===username)) { toast('Usuário já existe!','red'); return; }
+  const avatar = window._avatarB64 || '';
+  const genero = document.getElementById('m-genero')?.value || '';
+  window._avatarB64 = null;
+  await addDoc(collection(db,'users'),{name,username,password,funcao,role,avatar,genero,createdAt:serverTimestamp()});
+  closeModal(); toast('Usuário criado com sucesso!','green');
+};
+window.editarAvatar = function(id) {
+  const u = users.find(x => x.id === id);
+  if (!u) return;
+  window._editAvatarId = id;
+  openModal(`
+    <div class="modal-title">📷 Foto de Perfil</div>
+    <div class="modal-sub">${u.name}</div>
+    <div class="avatar-upload-wrap" style="margin:20px 0">
+      <div class="avatar-preview" onclick="document.getElementById('avatar-edit-input').click()" id="avatar-edit-preview" style="width:110px;height:110px;font-size:36px">
+        ${u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : `<span>${(u.name||'?')[0].toUpperCase()}</span>`}
+        <div class="avatar-overlay">📷</div>
+      </div>
+      <div class="avatar-hint">Clique na foto para alterar</div>
+      <input type="file" id="avatar-edit-input" accept="image/*" style="display:none" onchange="previewAvatarEdit(event)">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+      ${u.avatar ? `<button class="btn-modal-cancel" style="color:var(--red);border-color:rgba(247,96,79,.4)" onclick="removerAvatar('${id}')">🗑 Remover Foto</button>` : ''}
+      <button class="btn-modal-confirm" onclick="salvarAvatar('${id}')">💾 Salvar Foto</button>
+    </div>`);
+};
+
+window.previewAvatarEdit = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 120; canvas.height = 120;
+      const ctx = canvas.getContext('2d');
+      ctx.beginPath();
+      ctx.arc(60, 60, 60, 0, Math.PI*2);
+      ctx.clip();
+      const scale = Math.max(120/img.width, 120/img.height);
+      const w = img.width*scale, h = img.height*scale;
+      ctx.drawImage(img, (120-w)/2, (120-h)/2, w, h);
+      const b64 = canvas.toDataURL('image/jpeg', 0.82);
+      window._editAvatarB64 = b64;
+      const prev = document.getElementById('avatar-edit-preview');
+      if (prev) prev.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="avatar-overlay">📷</div>`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.salvarAvatar = async function(id) {
+  const b64 = window._editAvatarB64;
+  if (!b64) { toast('Selecione uma foto primeiro!', 'red'); return; }
+  setSyncStatus('syncing');
+  await updateDoc(doc(db,'users',id), { avatar: b64 });
+  window._editAvatarB64 = null;
+  // Update current user topbar if it's the logged user
+  const uUpdated = users.find(x => x.id === id);
+  if (uUpdated && currentUser && currentUser.id === id) {
+    currentUser.avatar = b64;
+    const avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) avatarEl.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  }
+  closeModal();
+  toast('Foto de perfil atualizada!', 'green');
+};
+
+window.removerAvatar = async function(id) {
+  setSyncStatus('syncing');
+  await updateDoc(doc(db,'users',id), { avatar: '' });
+  if (currentUser && currentUser.id === id) {
+    currentUser.avatar = '';
+    const avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = '';
+      avatarEl.textContent = currentUser.name[0].toUpperCase();
+    }
+  }
+  closeModal();
+  toast('Foto removida.', 'red');
+};
+
+window.deleteUser = async function(id) {
+  await deleteDoc(doc(db,'users',id));
+  toast('Usuário removido.','red');
+};
+
+// ── IMPORTAR DADOS INICIAIS ──────────────────────────
+window.importInitialData = async function() {
+  const btn = document.querySelector('.btn-import');
+  btn.disabled=true; btn.textContent='Importando...';
+  document.getElementById('import-progress').style.display='block';
+  const total=INITIAL_PRODUCTS.length; let done=0;
+  for(let i=0;i<total;i+=400) {
+    const batch=writeBatch(db);
+    INITIAL_PRODUCTS.slice(i,i+400).forEach(([code,model,qty])=>{
+      batch.set(doc(collection(db,'products')),{code,model,qty,createdAt:serverTimestamp()});
+    });
+    await batch.commit();
+    done=Math.min(i+400,total);
+    document.getElementById('progress-bar').style.width=(done/total*100)+'%';
+    document.getElementById('progress-text').textContent=`${done} / ${total} produtos importados...`;
+  }
+  toast(total+' produtos importados!','green');
+  document.getElementById('import-progress').style.display='none';
+  btn.disabled=false;
+};
+
+// ── RELATÓRIO PDF ────────────────────────────────────
+function gerarRelatorio() {
+  const q = document.getElementById('search-manage').value.trim();
+  const data = getFiltered(q);
+  const now = new Date();
+  const dataHora = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  const filtroLabel = q ? `Filtro aplicado: "${q}"` : 'Todos os produtos';
+  const totalQty = data.reduce((a,b)=>a+(b.qty||0),0);
+  const zerados = data.filter(p=>(p.qty||0)===0).length;
+
+  const rows = data.map((p, i) => {
+    const qty = p.qty || 0;
+    const cor = qty === 0 ? '#c0392b' : qty <= 2 ? '#b07800' : '#1a7a4a';
+    const bg  = qty === 0 ? '#fff0f0' : qty <= 2 ? '#fffbe6' : '#f0fff6';
+    return `<tr>
+      <td style="color:#888;text-align:center">${i+1}</td>
+      <td style="font-family:monospace;color:#1a5cb5;font-weight:600">${p.code}</td>
+      <td>${p.model}</td>
+      <td style="text-align:center;font-weight:700;color:${cor};background:${bg};border-radius:4px">${qty}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>ELQ — Relatório de Estoque</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #222; background: #fff; padding: 32px; font-size: 13px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #2a5fc5; padding-bottom: 14px; margin-bottom: 18px; }
+    .header-left {}
+    .logo { font-size: 18px; font-weight: 800; color: #2a5fc5; letter-spacing: 1px; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #666; }
+    .header-right { text-align: right; font-size: 12px; color: #666; line-height: 1.6; }
+    .summary { display: flex; gap: 16px; margin-bottom: 18px; }
+    .summary-card { flex: 1; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 14px; }
+    .summary-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; font-weight: 700; margin-bottom: 4px; }
+    .summary-value { font-size: 22px; font-weight: 800; }
+    .summary-card.blue .summary-value { color: #2a5fc5; }
+    .summary-card.green .summary-value { color: #1a7a4a; }
+    .summary-card.red .summary-value { color: #c0392b; }
+    .filter-row { background: #f5f7ff; border: 1px solid #d0d8f0; border-radius: 6px; padding: 8px 14px; margin-bottom: 16px; font-size: 12px; color: #444; }
+    .filter-row strong { color: #2a5fc5; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #2a5fc5; color: #fff; }
+    th { padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+    td { padding: 8px 12px; border-bottom: 1px solid #ebebeb; vertical-align: middle; }
+    tr:nth-child(even) td { background: #f8f9fc; }
+    tr:last-child td { border-bottom: none; }
+    .footer { margin-top: 20px; padding-top: 12px; border-top: 1px solid #e0e0e0; font-size: 11px; color: #aaa; display: flex; justify-content: space-between; }
+    @media print {
+      body { padding: 20px; }
+      .no-print { display: none; }
+      @page { margin: 1.5cm; }
+    }
+    .btn-print {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #2a5fc5; color: #fff; border: none;
+      padding: 10px 22px; border-radius: 8px; font-size: 14px;
+      font-weight: 700; cursor: pointer; margin-bottom: 20px;
+    }
+    .btn-print:hover { background: #1e4aa0; }
+  </style>
+</head>
+<body>
+  <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🔬 ELQ — Estoque Laboratório Qualidade</div>
+      <div class="subtitle">Divisão dos Importados — Relatório de Estoque</div>
+    </div>
+    <div class="header-right">
+      Gerado em: <strong>${dataHora}</strong><br>
+      Total de itens: <strong>${data.length}</strong>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card blue">
+      <div class="summary-label">Total de Produtos</div>
+      <div class="summary-value">${data.length}</div>
+    </div>
+    <div class="summary-card green">
+      <div class="summary-label">Unidades em Estoque</div>
+      <div class="summary-value">${totalQty}</div>
+    </div>
+    <div class="summary-card red">
+      <div class="summary-label">Produtos Zerados</div>
+      <div class="summary-value">${zerados}</div>
+    </div>
+  </div>
+
+  <div class="filter-row">📋 <strong>${filtroLabel}</strong> — ${data.length} produto(s) listado(s)</div>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Código</th><th>Modelo / Descrição</th><th style="text-align:center">Qtd.</th></tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="footer">
+    <span>LAB Control — Sistema de Controle de Estoque</span>
+    <span>Gerado em ${dataHora}</span>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+}
+
+// ── HISTÓRICO GERAL ──────────────────────────────────
+let allMovements = [];
+let pagHist = 1;
+const PER_PAGE_HIST = 30;
+
+async function loadHistoricoGeral() {
+  document.getElementById('tbody-hist').innerHTML = '<tr><td colspan="6" class="hist-loading">⏳ Carregando histórico...</td></tr>';
+  document.getElementById('hist-stats').innerHTML = '';
+  try {
+    const snap = await getDocs(collection(db, 'movements'));
+    allMovements = snap.docs.map(d => d.data());
+    renderHistorico();
+  } catch(e) {
+    document.getElementById('tbody-hist').innerHTML = '<tr><td colspan="6" class="hist-empty">Erro ao carregar: ' + e.message + '</td></tr>';
+  }
+}
+
+function getFilteredHist() {
+  const q     = (document.getElementById('search-hist').value || '').toLowerCase();
+  const type  = document.getElementById('filter-hist-type').value;
+  const order = document.getElementById('filter-hist-sort').value;
+
+  let data = allMovements.filter(m => {
+    const matchQ    = !q || (m.productCode||'').toLowerCase().includes(q) || (m.productModel||'').toLowerCase().includes(q);
+    const matchType = !type || m.type === type;
+    return matchQ && matchType;
+  });
+
+  data.sort((a, b) => {
+    const da = a.date && a.date.toDate ? a.date.toDate() : new Date(a.date || 0);
+    const db_ = b.date && b.date.toDate ? b.date.toDate() : new Date(b.date || 0);
+    return order === 'asc' ? da - db_ : db_ - da;
+  });
+
+  return data;
+}
+
+function renderHistorico() {
+  const data = getFilteredHist();
+  const totalEntradas = data.filter(m => m.type === 'in').reduce((a,m) => a + (m.qty||0), 0);
+  const totalSaidas   = data.filter(m => m.type === 'out').reduce((a,m) => a + (m.qty||0), 0);
+
+  // Stats
+  document.getElementById('hist-stats').innerHTML = `
+    <div class="hist-stat"><div class="hist-stat-label">Total de Registros</div><div class="hist-stat-value" style="color:var(--accent)">${data.length}</div></div>
+    <div class="hist-stat"><div class="hist-stat-label">Unidades Entrada</div><div class="hist-stat-value" style="color:var(--green)">+${totalEntradas}</div></div>
+    <div class="hist-stat"><div class="hist-stat-label">Unidades Saída</div><div class="hist-stat-value" style="color:var(--yellow)">−${totalSaidas}</div></div>
+  `;
+
+  // Table
+  const pages = Math.max(1, Math.ceil(data.length / PER_PAGE_HIST));
+  if (pagHist > pages) pagHist = pages;
+  const slice = data.slice((pagHist-1)*PER_PAGE_HIST, pagHist*PER_PAGE_HIST);
+
+  document.getElementById('tbody-hist').innerHTML = slice.length
+    ? slice.map(m => {
+        const dt = m.date && m.date.toDate ? m.date.toDate() : new Date(m.date || 0);
+        const dateStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+        const badge = m.type === 'in'
+          ? `<span class="hist-badge-in">📥 Entrada</span>`
+          : `<span class="hist-badge-out">📤 Saída</span>`;
+        const qtyStr = m.type === 'in' ? `+${m.qty}` : `−${m.qty}`;
+        const qtyColor = m.type === 'in' ? 'var(--green)' : 'var(--yellow)';
+        return `<tr>
+          <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${dateStr}</td>
+          <td>${badge}</td>
+          <td><span class="code-cell">${m.productCode||'—'}</span></td>
+          <td style="font-size:13px">${m.productModel||'—'}</td>
+          <td style="font-family:var(--mono);font-weight:700;color:${qtyColor}">${qtyStr}</td>
+          <td style="color:var(--muted);font-size:12px">${m.user||'—'}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" class="hist-empty">Nenhuma movimentação encontrada.</td></tr>';
+
+  // Pagination
+  renderPag('pag-hist', pagHist, pages, data.length, n => { pagHist = n; renderHistorico(); });
+}
+
+// ── REFUGOS ──────────────────────────────────────────
+let refugos = [];
+let caixaCount = 0;
+
+// Load all refugos from Firestore
+async function loadRefugos() {
+  const listEl = document.getElementById('refugo-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="hist-loading">⏳ Carregando refugos...</div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'refugos'), orderBy('createdAt', 'desc')));
+    refugos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderRefugos();
+  } catch(e) {
+    listEl.innerHTML = '<div class="hist-empty">Erro ao carregar: ' + e.message + '</div>';
+  }
+}
+
+function getFilteredRefugos() {
+  const q = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+  const status = document.getElementById('filter-refugo-status')?.value || '';
+
+  return refugos.filter(r => {
+    // Status filter
+    if (status === 'com-mov' && !r.dataMov) return false;
+    if (status === 'sem-mov' && r.dataMov) return false;
+
+    // Text search
+    if (!q) return true;
+
+    // Search in date fields
+    if ((r.data||'').includes(q)) return true;
+    if ((r.dataMov||'').includes(q)) return true;
+    if ((r.obs||'').toLowerCase().includes(q)) return true;
+    if ((r.criadoPor||'').toLowerCase().includes(q)) return true;
+
+    // Search inside caixas and products
+    for (const c of (r.caixas||[])) {
+      if ((c.nome||'').toLowerCase().includes(q)) return true;
+      for (const p of (c.produtos||[])) {
+        if ((p.codigo||'').toLowerCase().includes(q)) return true;
+        if ((p.modelo||'').toLowerCase().includes(q)) return true;
+        if ((p.tensao||'').toLowerCase().includes(q)) return true;
+        if ((p.obs||'').toLowerCase().includes(q)) return true;
+      }
+    }
+    return false;
+  });
+}
+
+function highlightMatch(text, q) {
+  if (!q || !text) return text || '—';
+  const regex = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return text.replace(regex, '<mark style="background:rgba(79,142,247,.3);color:var(--text);border-radius:3px;padding:0 2px">$1</mark>');
+}
+
+function renderRefugos() {
+  const listEl = document.getElementById('refugo-list');
+  if (!listEl) return;
+
+  const q = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+  const filtered = getFilteredRefugos();
+  const infoEl = document.getElementById('refugo-results-info');
+
+  // Show results info when searching
+  if (infoEl) {
+    if (q || document.getElementById('filter-refugo-status')?.value) {
+      infoEl.style.display = 'block';
+      infoEl.innerHTML = filtered.length > 0
+        ? `🔍 <strong>${filtered.length}</strong> refugo${filtered.length!==1?'s':''} encontrado${filtered.length!==1?'s':''} de <strong>${refugos.length}</strong> total`
+        : `🔍 Nenhum refugo encontrado para "<strong>${q}</strong>"`;
+    } else {
+      infoEl.style.display = 'none';
+    }
+  }
+
+  if (refugos.length === 0) {
+    listEl.innerHTML = '<div class="hist-empty">Nenhum refugo registrado ainda. Clique em "Criar Refugo" para começar.</div>';
+    return;
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="hist-empty">Nenhum refugo encontrado para essa busca.</div>';
+    return;
+  }
+
+  // Map filtered refugos with original index for PDF/edit/delete
+  listEl.innerHTML = filtered.map((r) => {
+    const idx = refugos.indexOf(r);
+    const totalCaixas = (r.caixas || []).length;
+    const totalItens  = (r.caixas || []).reduce((a, c) => a + (c.produtos || []).reduce((b, p) => b + (parseInt(p.qty) || 0), 0), 0);
+    const data = r.data || '—';
+    const qSearch = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+    const autoExpand = qSearch && getFilteredRefugos().includes(r);
+    const caixasHtml = (r.caixas || []).map((c, ci) => {
+      const rowsHtml = (c.produtos || []).map(p => {
+        const rowQ = (document.getElementById('search-refugo')?.value || '').toLowerCase().trim();
+        const matchRow = rowQ && (
+          (p.codigo||'').toLowerCase().includes(rowQ) ||
+          (p.modelo||'').toLowerCase().includes(rowQ) ||
+          (p.tensao||'').toLowerCase().includes(rowQ)
+        );
+        return `<tr style="${matchRow ? 'background:rgba(79,142,247,.08);' : ''}">
+          <td style="text-align:center;font-family:var(--mono);font-weight:700">${p.qty || 1}</td>
+          <td><span class="code-cell">${highlightMatch(p.codigo, rowQ)}</span></td>
+          <td>${highlightMatch(p.modelo, rowQ)}</td>
+          <td><span class="tensao-badge">${p.tensao || '—'}</span></td>
+          <td>${p.obs ? '<span class="obs-badge">' + p.obs + '</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`;
+      }).join('');
+      return `
+        <div class="caixa-section">
+          <div class="caixa-header">
+            <div class="caixa-title">📦 ${c.nome}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="caixa-count">${(c.produtos||[]).reduce((a,p)=>a+(parseInt(p.qty)||0),0)} unidades</div>
+              <button class="btn-action btn-edit" style="font-size:11.5px;padding:4px 10px" onclick="gerarPDFCaixa(${idx}, ${ci})">🖨️ PDF Caixa</button>
+            </div>
+          </div>
+          <table class="caixa-table">
+            <thead><tr><th>Qtd</th><th>Código</th><th>Modelo</th><th>Tensão</th><th>Obs</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+    }).join('');
+    return `
+      <div class="refugo-card">
+        <div class="refugo-card-header" onclick="toggleRefugo('rcard-${idx}')">
+          <div>
+            <div class="refugo-card-title">📅 Refugo — ${data}</div>
+            <div class="refugo-card-meta">
+              ${r.dataMov ? `<span style="color:var(--accent);font-size:12.1px;font-weight:600">📤 Movimentado em: ${r.dataMov}</span>${r.obs ? ' &nbsp;·&nbsp; ' + r.obs : ''}` : (r.obs || '<span style="color:var(--muted);font-size:12px">Sem data de movimentação registrada</span>')}
+            </div>
+          </div>
+          <div class="refugo-card-badges">
+            <span class="refugo-badge caixas">📦 ${totalCaixas} caixa${totalCaixas!==1?'s':''}</span>
+            <span class="refugo-badge itens">🔢 ${totalItens} itens</span>
+            <span class="refugo-chevron" id="chev-${idx}">›</span>
+          </div>
+        </div>
+        <div class="refugo-body ${autoExpand ? 'open' : ''}" id="rcard-${idx}">
+          ${caixasHtml}
+          <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
+            <button class="btn-pdf" style="font-size:13.2px" onclick="gerarRelatorioRefugo(${idx})">🖨️ Gerar PDF deste Refugo</button>
+            <div style="display:flex;gap:8px">
+              ${r.id ? `<button class="btn-action btn-edit" onclick="editarRefugo('${r.id}')">✏️ Editar Refugo</button>` : ''}
+              ${r.id && currentUser && currentUser.role === 'admin' ? `<button class="btn-action btn-del" onclick="deleteRefugo('${r.id}')">🗑 Remover Refugo</button>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+window.toggleRefugo = function(id) {
+  const body = document.getElementById(id);
+  if (!body) return;
+  const idx = id.replace('rcard-','');
+  const chev = document.getElementById('chev-' + idx);
+  const isOpen = body.classList.toggle('open');
+  if (chev) { chev.classList.toggle('open', isOpen); chev.textContent = isOpen ? '⌄' : '›'; }
+};
+
+window.deleteRefugo = async function(id) {
+  if (!confirm('Remover este refugo? Esta ação não pode ser desfeita.')) return;
+  await deleteDoc(doc(db, 'refugos', id));
+  toast('Refugo removido.', 'red');
+  loadRefugos();
+};
+
+window.editarRefugo = async function(id) {
+  const r = refugos.find(x => x.id === id);
+  if (!r) return;
+
+  caixaCount = 0;
+  const modal = document.getElementById('modal');
+  modal.classList.add('modal-wide-xl');
+
+  openModal(`
+    <div class="modal-title">✏️ Editar Refugo</div>
+    <div class="modal-sub">Edite as informações, caixas e produtos deste refugo.</div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Informações do Refugo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:4px">
+        <div class="form-group"><label>Data do Refugo</label><input id="ref-data" type="date" value="${r.data}" /></div>
+        <div class="form-group"><label>Data da Movimentação</label><input id="ref-data-mov" type="date" value="${r.dataMov||''}" /></div>
+        <div class="form-group"><label>Observação (opcional)</label><input id="ref-obs" value="${r.obs||''}" placeholder="ex: Refugo mensal, devolução..." /></div>
+      </div>
+    </div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Caixas e Produtos</div>
+      <div class="caixas-builder" id="caixas-builder"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn-add-caixa" style="flex:1" onclick="addCaixa()">📦 + Adicionar Caixa</button>
+        <button class="btn-add-caixa" style="flex:1;border-color:rgba(247,195,79,.4);color:var(--yellow)" onclick="addSoltos()">📋 + Adicionar Soltos</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-modal-confirm" onclick="salvarEdicaoRefugo('${id}')">💾 Salvar Alterações</button>
+    </div>`);
+
+  // Populate existing caixas
+  for (const c of (r.caixas || [])) {
+    const isSoltos = c.nome.toUpperCase().startsWith('SOLT');
+    if (isSoltos) { addSoltos(); } else { addCaixa(); }
+    const currentId = caixaCount;
+    const nomeInput = document.getElementById('caixa-nome-' + currentId);
+    if (nomeInput) nomeInput.value = c.nome;
+
+    // Remove the default empty product row first
+    const container = document.getElementById('produtos-caixa-' + currentId);
+    if (container) container.innerHTML = '';
+
+    // Add each existing product
+    for (const p of (c.produtos || [])) {
+      addProdutoCaixa(currentId);
+      const rows = container.querySelectorAll('div');
+      const lastRow = rows[rows.length - 1];
+      if (lastRow) {
+        const inputs = lastRow.querySelectorAll('input');
+        if (inputs[0]) inputs[0].value = p.qty || 1;
+        if (inputs[1]) inputs[1].value = p.codigo || '';
+        if (inputs[2]) inputs[2].value = p.modelo || '';
+        if (inputs[3]) inputs[3].value = p.tensao || '';
+        if (inputs[4]) inputs[4].value = p.obs || '';
+      }
+    }
+  }
+};
+
+window.salvarEdicaoRefugo = async function(id) {
+  const data = document.getElementById('ref-data').value;
+  const obs  = document.getElementById('ref-obs').value.trim();
+  if (!data) { toast('Informe a data do refugo!', 'red'); return; }
+
+  const caixasBuilder = document.querySelectorAll('.caixa-builder-item');
+  const caixas = [];
+  let totalItens = 0;
+
+  caixasBuilder.forEach(caixaEl => {
+    const cid = caixaEl.id.replace('caixa-', '');
+    const nome = document.getElementById('caixa-nome-' + cid)?.value || 'CAIXA';
+    const container = document.getElementById('produtos-caixa-' + cid);
+    if (!container) return;
+    const rows = container.querySelectorAll('div');
+    const produtos = [];
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      if (inputs.length < 4) return;
+      const qty    = inputs[0].value.trim() || '1';
+      const codigo = inputs[1].value.trim();
+      const modelo = inputs[2].value.trim();
+      const tensao = inputs[3].value.trim();
+      const obs2   = inputs[4] ? inputs[4].value.trim() : '';
+      if (codigo || modelo) {
+        produtos.push({ qty, codigo, modelo, tensao, obs: obs2 });
+        totalItens += parseInt(qty) || 1;
+      }
+    });
+    if (produtos.length > 0) caixas.push({ nome, produtos });
+  });
+
+  if (caixas.length === 0) { toast('Adicione pelo menos um produto!', 'red'); return; }
+
+  setSyncStatus('syncing');
+  const dataMov = document.getElementById('ref-data-mov').value || '';
+  await updateDoc(doc(db, 'refugos', id), { data, dataMov, obs, caixas, totalItens });
+  closeModal();
+  toast('Refugo atualizado com sucesso!', 'green');
+  loadRefugos();
+};
+
+window.gerarRelatorioRefugo = function(idx) {
+  const r = refugos[idx];
+  if (!r) return;
+
+  const totalItens = (r.caixas||[]).reduce((a,c) => a + (c.produtos||[]).reduce((b,p) => b+(parseInt(p.qty)||0), 0), 0);
+  const totalCaixas = (r.caixas||[]).length;
+  const now = new Date();
+  const dataHora = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+  const caixasHtml = (r.caixas||[]).map(c => {
+    const subtotal = (c.produtos||[]).reduce((a,p) => a+(parseInt(p.qty)||0), 0);
+    const rows = (c.produtos||[]).map((p,i) => `
+      <tr>
+        <td style="text-align:center;color:#888">${i+1}</td>
+        <td style="text-align:center;font-weight:700">${p.qty||1}</td>
+        <td style="font-family:monospace;color:#1a5cb5;font-weight:600">${p.codigo||'—'}</td>
+        <td>${p.modelo||'—'}</td>
+        <td style="text-align:center">${p.tensao||'—'}</td>
+        <td style="color:#888">${p.obs||'—'}</td>
+      </tr>`).join('');
+    const isBox = c.nome !== 'SOLTOS' && !c.nome.startsWith('SOLT');
+    const headerColor = isBox ? '#1a4fa3' : '#8a6200';
+    const headerBg = isBox ? '#e8f0ff' : '#fff8e1';
+    return `
+      <div style="margin-bottom:24px;page-break-inside:avoid">
+        <div style="background:${headerBg};border-left:4px solid ${headerColor};padding:10px 14px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:800;color:${headerColor};font-size:15px">📦 ${c.nome}</span>
+          <span style="font-size:12px;color:#666">${subtotal} unidade${subtotal!==1?'s':''}</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e0e0e0;border-top:none">
+          <thead>
+            <tr style="background:#f5f7fa">
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">#</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Qtd</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Código</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Modelo</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Tensão</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#666;border-bottom:1px solid #e0e0e0">Obs</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Refugo — ${r.data}</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Calibri','Segoe UI',Arial,sans-serif; color:#222; background:#fff; padding:32px; font-size:13px; }
+    .btn-print { display:inline-flex; align-items:center; gap:8px; background:#1a4fa3; color:#fff; border:none; padding:10px 22px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:24px; }
+    .btn-print:hover { background:#153d82; }
+    .header { border-bottom:3px solid #1a4fa3; padding-bottom:14px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-start; }
+    .logo { font-size:19px; font-weight:800; color:#1a4fa3; letter-spacing:1px; margin-bottom:3px; }
+    .subtitle { font-size:12px; color:#666; }
+    .header-right { text-align:right; font-size:12px; color:#666; line-height:1.7; }
+    .summary { display:flex; gap:14px; margin-bottom:22px; }
+    .summary-card { flex:1; border:1px solid #e0e0e0; border-radius:8px; padding:10px 14px; }
+    .summary-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#888; font-weight:700; margin-bottom:4px; }
+    .summary-value { font-size:22px; font-weight:800; }
+    .obs-box { background:#fffbe6; border:1px solid #ffe082; border-radius:6px; padding:10px 14px; margin-bottom:20px; font-size:13px; color:#5a4000; }
+    td { padding:8px 10px; border-bottom:1px solid #ebebeb; vertical-align:middle; }
+    tr:nth-child(even) td { background:#f8f9fc; }
+    tr:last-child td { border-bottom:none; }
+    .footer { margin-top:24px; padding-top:12px; border-top:1px solid #e0e0e0; font-size:11px; color:#aaa; display:flex; justify-content:space-between; }
+    @media print { .btn-print { display:none; } body { padding:16px; } @page { margin:1.5cm; } }
+  </style>
+</head>
+<body>
+  <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+
+  <div class="header">
+    <div>
+      <div class="logo">🔬 ELQ — Refugo Laboratório</div>
+      <div class="subtitle">Estoque Laboratório Qualidade — Divisão dos Importados</div>
+    </div>
+    <div class="header-right">
+      Data do Refugo: <strong>${r.data}</strong><br>
+      Data da Movimentação: <strong>${r.dataMov || 'Não registrada'}</strong><br>
+      Registrado por: <strong>${r.criadoPor||'—'}</strong><br>
+      Gerado em: ${dataHora}
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card" style="border-color:#bbdefb">
+      <div class="summary-label">Total de Caixas</div>
+      <div class="summary-value" style="color:#1a4fa3">${totalCaixas}</div>
+    </div>
+    <div class="summary-card" style="border-color:#c8e6c9">
+      <div class="summary-label">Total de Itens</div>
+      <div class="summary-value" style="color:#1a7a4a">${totalItens}</div>
+    </div>
+  </div>
+
+  ${r.obs ? `<div class="obs-box">📝 <strong>Observação:</strong> ${r.obs}</div>` : ''}
+
+  ${caixasHtml}
+
+  <div class="footer">
+    <span>ELQ — Estoque Laboratório Qualidade / Divisão dos Importados</span>
+    <span>Refugo de ${r.data} — Gerado em ${dataHora}</span>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=960,height=750');
+  win.document.write(html);
+  win.document.close();
+};
+
+window.gerarPDFCaixa = function(refugoIdx, caixaIdx) {
+  const r = refugos[refugoIdx];
+  if (!r) return;
+  const c = (r.caixas || [])[caixaIdx];
+  if (!c) return;
+
+  const subtotal = (c.produtos||[]).reduce((a,p) => a+(parseInt(p.qty)||0), 0);
+  const now = new Date();
+  const dataHora = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const isBox = !c.nome.toUpperCase().startsWith('SOLT');
+
+  const rows = (c.produtos||[]).map((p,i) => `
+    <tr>
+      <td style="text-align:center;color:#888;padding:9px 10px;border-bottom:1px solid #ebebeb">${i+1}</td>
+      <td style="text-align:center;font-weight:800;font-size:15px;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.qty||1}</td>
+      <td style="font-family:monospace;color:#1a4fa3;font-weight:700;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.codigo||'—'}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid #ebebeb">${p.modelo||'—'}</td>
+      <td style="text-align:center;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.tensao||'—'}</td>
+      <td style="color:#888;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.obs||'—'}</td>
+    </tr>`).join('');
+
+  const accentColor = isBox ? '#1a4fa3' : '#8a6200';
+  const accentBg    = isBox ? '#e8f0ff' : '#fff8e1';
+  const icon        = isBox ? '📦' : '📋';
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${c.nome} — Refugo ${r.data}</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Calibri','Segoe UI',Arial,sans-serif; color:#222; background:#fff; padding:28px; font-size:13px; }
+    .btn-print { display:inline-flex; align-items:center; gap:8px; background:${accentColor}; color:#fff; border:none; padding:10px 22px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:22px; }
+    .btn-print:hover { opacity:.88; }
+
+    /* IDENTIFICAÇÃO DA CAIXA */
+    .box-id {
+      background:${accentBg}; border:3px solid ${accentColor};
+      border-radius:12px; padding:20px 24px;
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:20px;
+    }
+    .box-name { font-size:32px; font-weight:800; color:${accentColor}; letter-spacing:1px; }
+    .box-meta { text-align:right; font-size:12px; color:#666; line-height:1.8; }
+    .box-meta strong { color:#333; font-size:13px; }
+
+    /* HEADER ELQ */
+    .header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid ${accentColor}; padding-bottom:12px; margin-bottom:18px; }
+    .logo { font-size:16px; font-weight:800; color:${accentColor}; }
+    .subtitle { font-size:11px; color:#888; margin-top:2px; }
+    .gen-info { font-size:11px; color:#888; text-align:right; }
+
+    /* SUMMARY */
+    .summary { display:flex; gap:12px; margin-bottom:18px; }
+    .scard { flex:1; border:1px solid #e0e0e0; border-radius:8px; padding:10px 14px; }
+    .scard-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#888; font-weight:700; margin-bottom:4px; }
+    .scard-value { font-size:22px; font-weight:800; color:${accentColor}; }
+
+    /* TABLE */
+    table { width:100%; border-collapse:collapse; border:1px solid #e0e0e0; }
+    thead { background:${accentBg}; }
+    th { padding:9px 10px; text-align:left; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:${accentColor}; border-bottom:2px solid ${accentColor}; }
+    tr:nth-child(even) td { background:#f8f9fc; }
+    tr:last-child td { border-bottom:none; }
+
+    /* FOOTER */
+    .footer { margin-top:18px; padding-top:10px; border-top:1px solid #e0e0e0; font-size:11px; color:#aaa; display:flex; justify-content:space-between; }
+    @media print { .btn-print { display:none; } body { padding:14px; } @page { margin:1cm; } }
+  </style>
+</head>
+<body>
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+
+  <div class="header">
+    <div>
+      <div class="logo">🔬 ELQ — Refugo Laboratório</div>
+      <div class="subtitle">Estoque Laboratório Qualidade — Divisão dos Importados</div>
+    </div>
+    <div class="gen-info">Gerado em: ${dataHora}</div>
+  </div>
+
+  <!-- IDENTIFICAÇÃO DA CAIXA -->
+  <div class="box-id">
+    <div class="box-name">${icon} ${c.nome}</div>
+    <div class="box-meta">
+      Data do Refugo: <strong>${r.data}</strong><br>
+      Itens nesta caixa: <strong>${subtotal} unidade${subtotal!==1?'s':''}</strong><br>
+      Registrado por: <strong>${r.criadoPor||'—'}</strong>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="scard">
+      <div class="scard-label">Itens Distintos</div>
+      <div class="scard-value">${(c.produtos||[]).length}</div>
+    </div>
+    <div class="scard">
+      <div class="scard-label">Total de Unidades</div>
+      <div class="scard-value">${subtotal}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:36px;text-align:center">#</th>
+        <th style="width:50px;text-align:center">Qtd</th>
+        <th style="width:120px">Código</th>
+        <th>Modelo</th>
+        <th style="width:90px;text-align:center">Tensão</th>
+        <th style="width:100px">Obs</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="footer">
+    <span>ELQ — ${c.nome} / Refugo ${r.data}</span>
+    <span>Gerado em ${dataHora}</span>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+};
+
+// ── CRIAR REFUGO MODAL ──────────────────────────────
+window.openCriarRefugo = function() {
+  caixaCount = 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const modal = document.getElementById('modal');
+  modal.classList.add('modal-wide-xl');
+  openModal(`
+    <div class="modal-title">🗃️ Criar Refugo</div>
+    <div class="modal-sub">Registre os produtos que saíram do laboratório organizados por caixa.</div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Informações do Refugo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:4px">
+        <div class="form-group"><label>Data do Refugo</label><input id="ref-data" type="date" value="${today}" /></div>
+        <div class="form-group"><label>Data da Movimentação</label><input id="ref-data-mov" type="date" placeholder="Preencher quando movimentar" /></div>
+        <div class="form-group"><label>Observação (opcional)</label><input id="ref-obs" placeholder="ex: Refugo mensal, devolução..." /></div>
+      </div>
+    </div>
+
+    <div class="refugo-modal-section">
+      <div class="refugo-modal-section-title">Caixas e Produtos</div>
+      <div class="caixas-builder" id="caixas-builder"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn-add-caixa" style="flex:1" onclick="addCaixa()">📦 + Adicionar Caixa</button>
+        <button class="btn-add-caixa" style="flex:1;border-color:rgba(247,195,79,.4);color:var(--yellow)" onclick="addSoltos()">📋 + Adicionar Soltos</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-modal-confirm" onclick="salvarRefugo()">💾 Salvar Refugo</button>
+    </div>`);
+  addCaixa(); // start with 1 caixa
+};
+
+window.addCaixa = function() {
+  caixaCount++;
+  const builder = document.getElementById('caixas-builder');
+  if (!builder) return;
+  const div = document.createElement('div');
+  div.className = 'caixa-builder-item';
+  div.id = 'caixa-' + caixaCount;
+  div.innerHTML = `
+    <div class="caixa-builder-header">
+      <input id="caixa-nome-${caixaCount}" value="CAIXA ${String(caixaCount).padStart(2,'0')}"
+        style="background:none;border:none;color:var(--accent);font-size:14.3px;font-weight:700;font-family:var(--font);outline:none;width:180px;cursor:text">
+      <div style="display:flex;gap:8px">
+        <button class="btn-add-produto-caixa" onclick="addProdutoCaixa(${caixaCount})">+ Produto</button>
+        <button class="btn-remove-caixa" onclick="removeCaixa(${caixaCount})">✕ Caixa</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:70px 130px 1fr 110px 120px 32px;gap:6px;padding:0 0 6px;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">QTD</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">CÓDIGO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">MODELO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">TENSÃO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">OBS</span>
+      <span></span>
+    </div>
+    <div id="produtos-caixa-${caixaCount}"></div>`;
+  builder.appendChild(div);
+  addProdutoCaixa(caixaCount);
+};
+
+window.addSoltos = function() {
+  caixaCount++;
+  const builder = document.getElementById('caixas-builder');
+  if (!builder) return;
+  const div = document.createElement('div');
+  div.className = 'caixa-builder-item';
+  div.id = 'caixa-' + caixaCount;
+  div.style.cssText = 'border-color:rgba(247,195,79,.35)';
+  div.innerHTML = `
+    <div class="caixa-builder-header">
+      <input id="caixa-nome-${caixaCount}" value="SOLTOS"
+        style="background:none;border:none;color:var(--yellow);font-size:14.3px;font-weight:700;font-family:var(--font);outline:none;width:180px;cursor:text">
+      <div style="display:flex;gap:8px">
+        <button class="btn-add-produto-caixa" onclick="addProdutoCaixa(${caixaCount})">+ Produto</button>
+        <button class="btn-remove-caixa" onclick="removeCaixa(${caixaCount})">✕ Remover</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:70px 130px 1fr 110px 120px 32px;gap:6px;padding:0 0 6px;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">QTD</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">CÓDIGO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">MODELO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">TENSÃO</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase">OBS</span>
+      <span></span>
+    </div>
+    <div id="produtos-caixa-${caixaCount}"></div>`;
+  builder.appendChild(div);
+  addProdutoCaixa(caixaCount);
+};
+
+window.removeCaixa = function(n) {
+  const el = document.getElementById('caixa-' + n);
+  if (el) el.remove();
+};
+
+window.addProdutoCaixa = function(caixaId) {
+  const container = document.getElementById('produtos-caixa-' + caixaId);
+  if (!container) return;
+  const pId = 'p-' + caixaId + '-' + Date.now();
+  const div = document.createElement('div');
+  div.id = pId;
+  div.style.cssText = 'display:grid;grid-template-columns:70px 130px 1fr 110px 120px 32px;gap:6px;margin-bottom:6px;align-items:center';
+  div.innerHTML = `
+    <input type="number" min="1" value="1" placeholder="Qtd" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Código" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Modelo" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Tensão (ex: 127V)" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="text" placeholder="Obs (opcional)" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <button onclick="document.getElementById('${pId}').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;border-radius:5px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">✕</button>`;
+  container.appendChild(div);
+};
+
+window.salvarRefugo = async function() {
+  const data = document.getElementById('ref-data').value;
+  const obs  = document.getElementById('ref-obs').value.trim();
+  if (!data) { toast('Informe a data do refugo!', 'red'); return; }
+
+  const caixasBuilder = document.querySelectorAll('.caixa-builder-item');
+  const caixas = [];
+  let totalItens = 0;
+
+  caixasBuilder.forEach(caixaEl => {
+    const id = caixaEl.id.replace('caixa-', '');
+    const nome = document.getElementById('caixa-nome-' + id)?.value || 'CAIXA';
+    const container = document.getElementById('produtos-caixa-' + id);
+    if (!container) return;
+    const rows = container.querySelectorAll('div');
+    const produtos = [];
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      if (inputs.length < 4) return;
+      const qty    = inputs[0].value.trim() || '1';
+      const codigo = inputs[1].value.trim();
+      const modelo = inputs[2].value.trim();
+      const tensao = inputs[3].value.trim();
+      const obs2   = inputs[4] ? inputs[4].value.trim() : '';
+      if (codigo || modelo) {
+        produtos.push({ qty, codigo, modelo, tensao, obs: obs2 });
+        totalItens += parseInt(qty) || 1;
+      }
+    });
+    if (produtos.length > 0) caixas.push({ nome, produtos });
+  });
+
+  if (caixas.length === 0) { toast('Adicione pelo menos um produto!', 'red'); return; }
+
+  setSyncStatus('syncing');
+  const dataMov = document.getElementById('ref-data-mov').value || '';
+  await addDoc(collection(db, 'refugos'), {
+    data, dataMov, obs, caixas, totalItens, createdAt: serverTimestamp(),
+    criadoPor: currentUser ? currentUser.name : '—'
+  });
+  closeModal();
+  toast('Refugo salvo com sucesso!', 'green');
+  loadRefugos();
+};
+
+// ── TOAST ────────────────────────────────────────────
+window.toast = function(msg, color='green') {
+  const el=document.createElement('div'); el.className=`toast ${color}`;
+  el.innerHTML=`<span style="font-size:16px">${color==='green'?'✅':'❌'}</span> ${msg}`;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),3500);
+};
+
+// ── INIT ─────────────────────────────────────────────
+// Search listeners — attached here to work inside module scope
+document.getElementById('search-view').addEventListener('input', () => { pagView = 1; renderView(); });
+document.getElementById('search-manage').addEventListener('input', () => { pagManage = 1; renderManage(); });
+document.getElementById('btn-pdf').addEventListener('click', () => gerarRelatorio());
+
+// Histórico geral
+document.getElementById('btn-historico-geral').addEventListener('click', () => {
+  switchTab('historico');
+  loadHistoricoGeral();
+});
+document.getElementById('btn-back-historico').addEventListener('click', () => {
+  switchTab('produtos');
+});
+
+// Refugos
+document.getElementById('btn-criar-refugo').addEventListener('click', () => openCriarRefugo());
+document.getElementById('search-refugo').addEventListener('input', () => renderRefugos());
+document.getElementById('filter-refugo-status').addEventListener('change', () => renderRefugos());
+document.getElementById('search-hist').addEventListener('input', () => { pagHist = 1; renderHistorico(); });
+document.getElementById('filter-hist-type').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
+document.getElementById('filter-hist-sort').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
+
+// Sort headers via event delegation - works inside module scope
+document.addEventListener('click', e => {
+  const th = e.target.closest('th[data-sort]');
+  if (!th) return;
+  const sortType = th.dataset.sort;
+  const field = th.dataset.field;
+  if (sortType === 'view') {
+    if (sortView.field === field) sortView.dir = sortView.dir === 'asc' ? 'desc' : 'asc';
+    else { sortView.field = field; sortView.dir = 'asc'; }
+    pagView = 1; renderView();
+  } else if (sortType === 'manage') {
+    if (sortManage.field === field) sortManage.dir = sortManage.dir === 'asc' ? 'desc' : 'asc';
+    else { sortManage.field = field; sortManage.dir = 'asc'; }
+    pagManage = 1; renderManage();
+  }
+});
+
+connectFirebase();
+</script>
+</body>
+</html>
