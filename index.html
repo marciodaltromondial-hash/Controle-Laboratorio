@@ -2595,11 +2595,23 @@ function setupCodigoAutocomplete(codId, modId, tenId) {
 
   function renderDrop(q) {
     const s = (q || '').toLowerCase().trim();
-    const matches = products.filter(p =>
+    const all = products.filter(p =>
       (p.code   || '').toLowerCase().includes(s) ||
       (p.familia|| '').toLowerCase().includes(s) ||
       (p.modelo || '').toLowerCase().includes(s)
-    ).slice(0, 10);
+    );
+    // Prioridade: 1º código começa com s, 2º código contém s, 3º família/modelo
+    all.sort((a, b) => {
+      const ac = (a.code||'').toLowerCase(), bc = (b.code||'').toLowerCase();
+      const aStarts = ac.startsWith(s), bStarts = bc.startsWith(s);
+      const aCode   = ac.includes(s),   bCode   = bc.includes(s);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return  1;
+      if (aCode  && !bCode)   return -1;
+      if (!aCode  && bCode)   return  1;
+      return ac.localeCompare(bc);
+    });
+    const matches = all.slice(0, 10);
 
     if (!s || !matches.length) { drop.style.display = 'none'; return; }
 
