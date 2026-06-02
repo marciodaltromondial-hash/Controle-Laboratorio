@@ -507,6 +507,10 @@
   .refugo-modal-section-title { font-size:13.2px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
   .caixas-builder { display:flex; flex-direction:column; gap:12px; }
   .caixa-builder-item { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .ac-drop { display:none; position:absolute; top:100%; left:0; right:0; background:var(--surface); border:1px solid var(--accent); border-top:none; border-radius:0 0 8px 8px; max-height:220px; overflow-y:auto; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+  .ac-item { padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s; }
+  .ac-item:last-child { border-bottom:none; }
+  .ac-item:hover { background:rgba(79,142,247,.12); }
   .caixa-builder-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
   .caixa-builder-name { font-size:14.3px; font-weight:700; color:var(--accent); }
   .btn-add-produto-caixa { padding:5px 12px; background:rgba(62,207,142,.1); border:1px solid rgba(62,207,142,.3); color:var(--green); border-radius:7px; font-size:12.1px; font-weight:600; cursor:pointer; font-family:var(--font); transition:all .15s; }
@@ -736,6 +740,7 @@
         <div class="progress-text" id="progress-text">Importando...</div>
       </div>
     </div>
+
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -1199,6 +1204,7 @@ function startListeners() {
     setSyncStatus('ok');
     const imp = document.getElementById('import-section');
     if (imp) imp.style.display = products.length === 0 ? 'block' : 'none';
+
   }, () => setSyncStatus('error'));
 
   onSnapshot(collection(db,'users'), snap => {
@@ -1343,6 +1349,7 @@ function renderManage() {
   const slice = data.slice((pagManage-1)*PER_PAGE, pagManage*PER_PAGE);
   const imp = document.getElementById('import-section');
   if (imp) imp.style.display = products.length===0 ? 'block' : 'none';
+
   document.getElementById('tbody-manage').innerHTML = slice.length
     ? slice.map(p=>`<tr>
         <td><span class="code-cell">${p.code}</span></td>
@@ -1742,6 +1749,7 @@ window.importInitialData = async function() {
   document.getElementById('import-progress').style.display='none';
   btn.disabled=false;
 };
+
 
 // ── RELATÓRIO PDF ────────────────────────────────────
 function gerarRelatorio() {
@@ -2558,19 +2566,78 @@ window.removeCaixa = function(n) {
 window.addProdutoCaixa = function(caixaId) {
   const container = document.getElementById('produtos-caixa-' + caixaId);
   if (!container) return;
-  const pId = 'p-' + caixaId + '-' + Date.now();
+  const pId   = 'p-' + caixaId + '-' + Date.now();
+  const codId = pId + '-cod';
+  const modId = pId + '-mod';
+  const tenId = pId + '-ten';
+  const inStyle = 'padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%';
   const div = document.createElement('div');
   div.id = pId;
   div.style.cssText = 'display:grid;grid-template-columns:70px 130px 1fr 110px 120px 32px;gap:6px;margin-bottom:6px;align-items:center';
   div.innerHTML = `
-    <input type="number" min="1" value="1" placeholder="Qtd" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
-    <input type="text" placeholder="Código" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
-    <input type="text" placeholder="Modelo" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
-    <input type="text" placeholder="Tensão (ex: 127V)" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
-    <input type="text" placeholder="Obs (opcional)" style="padding:7px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:13.2px;outline:none;width:100%">
+    <input type="number" min="1" value="1" placeholder="Qtd" style="${inStyle}">
+    <div style="position:relative">
+      <input id="${codId}" type="text" placeholder="Código" autocomplete="off" style="${inStyle}">
+      <div id="${codId}-drop" class="ac-drop"></div>
+    </div>
+    <input id="${modId}" type="text" placeholder="Modelo" style="${inStyle}">
+    <input id="${tenId}" type="text" placeholder="Tensão (ex: 127V)" style="${inStyle}">
+    <input type="text" placeholder="Obs (opcional)" style="${inStyle}">
     <button onclick="document.getElementById('${pId}').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;border-radius:5px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">✕</button>`;
   container.appendChild(div);
+  setupCodigoAutocomplete(codId, modId, tenId);
 };
+
+function setupCodigoAutocomplete(codId, modId, tenId) {
+  const input = document.getElementById(codId);
+  const drop  = document.getElementById(codId + '-drop');
+  if (!input || !drop) return;
+
+  function renderDrop(q) {
+    const s = (q || '').toLowerCase().trim();
+    const matches = products.filter(p =>
+      (p.code   || '').toLowerCase().includes(s) ||
+      (p.familia|| '').toLowerCase().includes(s) ||
+      (p.modelo || '').toLowerCase().includes(s)
+    ).slice(0, 10);
+
+    if (!s || !matches.length) { drop.style.display = 'none'; return; }
+
+    drop.innerHTML = matches.map(p => {
+      const familia = p.familia || p.model || '';
+      const modelo  = p.modelo  || '';
+      const tensao  = p.tensao  || '';
+      return `<div class="ac-item"
+        data-code="${p.code}"
+        data-modelo="${modelo}"
+        data-tensao="${tensao}">
+        <span style="color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:700">${p.code}</span>
+        <span style="color:var(--text);font-size:12px;margin-left:8px">${familia}${modelo ? ' — ' + modelo : ''}</span>
+        ${tensao ? `<span style="color:var(--accent2);font-size:11px;margin-left:6px;font-family:var(--mono)">${tensao}</span>` : ''}
+      </div>`;
+    }).join('');
+    drop.style.display = 'block';
+
+    drop.querySelectorAll('.ac-item').forEach(item => {
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = item.dataset.code;
+        const modEl = document.getElementById(modId);
+        const tenEl = document.getElementById(tenId);
+        if (modEl) modEl.value = item.dataset.modelo;
+        if (tenEl) tenEl.value = item.dataset.tensao;
+        drop.style.display = 'none';
+        // Feedback visual: borda verde por 1.5s
+        input.style.borderColor = 'var(--green)';
+        setTimeout(() => { input.style.borderColor = ''; }, 1500);
+      });
+    });
+  }
+
+  input.addEventListener('focus', () => renderDrop(input.value));
+  input.addEventListener('input', () => renderDrop(input.value));
+  input.addEventListener('blur',  () => setTimeout(() => { drop.style.display = 'none'; }, 180));
+}
 
 window.salvarRefugo = async function() {
   const data = document.getElementById('ref-data').value;
