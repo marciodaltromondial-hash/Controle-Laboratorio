@@ -491,8 +491,13 @@
   .refugo-body.open { display:block; }
 
   .caixa-section { margin-bottom:16px; }
-  .caixa-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border-radius:10px; margin-bottom:8px; }
+  .caixa-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border-radius:10px; margin-bottom:0; cursor:pointer; user-select:none; transition:background .18s; }
+  .caixa-header:hover { background:var(--border); }
   .caixa-title { font-size:14.3px; font-weight:700; color:var(--accent); }
+  .caixa-body { overflow:hidden; max-height:0; transition:max-height .3s ease, padding .3s ease; }
+  .caixa-body.open { max-height:9999px; padding-top:8px; }
+  .caixa-chevron { font-size:18px; color:var(--muted); transition:transform .25s; display:inline-block; margin-left:8px; }
+  .caixa-chevron.open { transform:rotate(90deg); color:var(--accent); }
   .caixa-count { font-size:12.1px; color:var(--muted); }
   .caixa-table { width:100%; border-collapse:collapse; font-size:13.2px; }
   .caixa-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); }
@@ -613,11 +618,11 @@
     <div class="menu-cards">
       <div class="menu-card blue" onclick="switchTab('produtos')">
         <span class="menu-card-icon">📦</span>
-        <span class="menu-card-label">Produtos no LAB</span>
+        <span class="menu-card-label">Entrada/Saída de Produtos</span>
       </div>
       <div class="menu-card purple" onclick="switchTab('gerenciador')" id="card-gerenciador">
         <span class="menu-card-icon">⚙️</span>
-        <span class="menu-card-label">Gerenciar Entrada/Saída de Produtos</span>
+        <span class="menu-card-label">Gerenciador Adicionar/Editar/Remover</span>
       </div>
       <div class="menu-card orange" onclick="switchTab('usuarios')" id="card-usuarios">
         <span class="menu-card-icon">👥</span>
@@ -634,7 +639,7 @@
   <div class="page" id="page-produtos">
     <div class="page-header">
       <div>
-        <div class="page-title">Produtos no LAB <small>Clique em um produto para ver o histórico de movimentações</small></div>
+        <div class="page-title">Entrada/Saída de Produtos <small>Registre entradas e saídas do estoque do laboratório</small></div>
       </div>
       <button class="btn-historico" id="btn-historico-geral">📋 Histórico Geral</button>
     </div>
@@ -653,6 +658,7 @@
   <th class="sortable" id="th-view-modelo" data-sort="view" data-field="modelo">Modelo ↕</th>
   <th>Tensão</th>
   <th>Qtd. Atual</th>
+  <th>Ações</th>
 </tr></thead>
         <tbody id="tbody-view"></tbody>
       </table>
@@ -727,7 +733,7 @@
   <div class="page" id="page-gerenciador">
     <div class="page-header">
       <div>
-        <div class="page-title">Gerenciar Entrada/Saída de Produtos <small>Adicionar, editar, movimentar e remover produtos</small></div>
+        <div class="page-title">Gerenciador — Adicionar/Editar/Remover Produtos <small>Cadastre, edite e remova produtos do sistema</small></div>
       </div>
       <button class="btn-add" onclick="openModalNovoProduto()">+ Novo Produto</button>
     </div>
@@ -1330,13 +1336,17 @@ function renderView() {
   if (pagView > pages) pagView = pages;
   const slice = data.slice((pagView-1)*PER_PAGE, pagView*PER_PAGE);
   document.getElementById('tbody-view').innerHTML = slice.length
-    ? slice.map(p=>`<tr style="cursor:pointer" onclick="openProductDetail('${p.id}')" title="Clique para ver histórico">
+    ? slice.map(p=>`<tr style="cursor:pointer" onclick="openProductDetail('${p.id}')" title="Clique para ver o histórico">
         <td><span class="code-cell">${p.code}</span></td>
         <td>${p.familia||p.model||''}</td>
         <td>${p.modelo||''}</td>
         <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${p.tensao||''}</span></td>
-        <td>${qtyBadge(p.qty||0)}</td></tr>`).join('')
-    : `<tr class="empty-row"><td colspan="5">Nenhum produto encontrado.</td></tr>`;
+        <td>${qtyBadge(p.qty||0)}</td>
+        <td><div class="actions-cell" onclick="event.stopPropagation()">
+          <button class="btn-action btn-in" onclick="openEntrada('${p.id}')">📥 Entrada</button>
+          <button class="btn-action btn-out" onclick="openSaida('${p.id}')">📤 Saída</button>
+        </div></td></tr>`).join('')
+    : `<tr class="empty-row"><td colspan="6">Nenhum produto encontrado.</td></tr>`;
   renderPag('pag-view', pagView, pages, data.length, n=>{pagView=n;renderView();});
   renderStats();
 }
@@ -1359,8 +1369,6 @@ function renderManage() {
         <td>${qtyBadge(p.qty||0)}</td>
         <td><div class="actions-cell">
           <button class="btn-action btn-edit" onclick="openEdit('${p.id}')">✏️ Editar</button>
-          <button class="btn-action btn-in" onclick="openEntrada('${p.id}')">📥 Entrada</button>
-          <button class="btn-action btn-out" onclick="openSaida('${p.id}')">📤 Saída</button>
           <button class="btn-action btn-del" onclick="confirmDel('${p.id}')">🗑 Remover</button>
         </div></td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="6">${products.length===0?'Banco vazio — importe os produtos acima.':'Nenhum produto encontrado.'}</td></tr>`;
@@ -1583,7 +1591,7 @@ window.openModalNovoUsuario = function() {
     <div class="form-group"><label>Perfil</label>
       <select id="m-role" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:14px;outline:none">
         <option value="admin">Administrador — acesso total</option>
-        <option value="editor">Editor — Produtos no LAB e Gerenciador</option>
+        <option value="editor">Editor — Entrada/Saída e Gerenciador</option>
       </select>
     </div>
     <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
@@ -2057,17 +2065,20 @@ function renderRefugos() {
       }).join('');
       return `
         <div class="caixa-section">
-          <div class="caixa-header">
+          <div class="caixa-header" onclick="toggleCaixa('caixa-body-${idx}-${ci}', this)">
             <div class="caixa-title">📦 ${c.nome}${c.reserva ? '<span style="font-size:11px;font-weight:600;color:var(--yellow);background:rgba(247,195,79,.12);border:1px solid rgba(247,195,79,.3);border-radius:5px;padding:2px 8px;margin-left:10px;font-family:var(--mono)">🔖 ' + c.reserva + '</span>' : ''}</div>
             <div style="display:flex;align-items:center;gap:10px">
               <div class="caixa-count">${(c.produtos||[]).reduce((a,p)=>a+(parseInt(p.qty)||0),0)} unidades</div>
-              <button class="btn-action btn-edit" style="font-size:11.5px;padding:4px 10px" onclick="gerarPDFCaixa(${idx}, ${ci})">🖨️ PDF Caixa</button>
+              <button class="btn-action btn-edit" style="font-size:11.5px;padding:4px 10px" onclick="event.stopPropagation();gerarPDFCaixa(${idx}, ${ci})">🖨️ PDF Caixa</button>
+              <span class="caixa-chevron" id="cchev-${idx}-${ci}">›</span>
             </div>
           </div>
-          <table class="caixa-table">
-            <thead><tr><th>Qtd</th><th>Código</th><th>Modelo</th><th>Tensão</th><th>Obs</th></tr></thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
+          <div class="caixa-body" id="caixa-body-${idx}-${ci}">
+            <table class="caixa-table">
+              <thead><tr><th>Qtd</th><th>Código</th><th>Modelo</th><th>Tensão</th><th>Obs</th></tr></thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
         </div>`;
     }).join('');
     return `
@@ -2082,6 +2093,7 @@ function renderRefugos() {
           <div class="refugo-card-badges">
             <span class="refugo-badge caixas">📦 ${totalCaixas} caixa${totalCaixas!==1?'s':''}</span>
             <span class="refugo-badge itens">🔢 ${totalItens} itens</span>
+            ${r.id ? `<button class="btn-action btn-edit" style="font-size:12.1px;padding:5px 11px" onclick="event.stopPropagation();editarRefugo('${r.id}')">✏️ Editar</button>` : ''}
             <span class="refugo-chevron" id="chev-${idx}">›</span>
           </div>
         </div>
@@ -2090,7 +2102,6 @@ function renderRefugos() {
           <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
             <button class="btn-pdf" style="font-size:13.2px" onclick="gerarRelatorioRefugo(${idx})">🖨️ Gerar PDF deste Refugo</button>
             <div style="display:flex;gap:8px">
-              ${r.id ? `<button class="btn-action btn-edit" onclick="editarRefugo('${r.id}')">✏️ Editar Refugo</button>` : ''}
               ${r.id && currentUser && currentUser.role === 'admin' ? `<button class="btn-action btn-del" onclick="deleteRefugo('${r.id}')">🗑 Remover Refugo</button>` : ''}
             </div>
           </div>
@@ -2098,6 +2109,14 @@ function renderRefugos() {
       </div>`;
   }).join('');
 }
+
+window.toggleCaixa = function(bodyId, headerEl) {
+  const body  = document.getElementById(bodyId);
+  const chev  = headerEl.querySelector('.caixa-chevron');
+  if (!body) return;
+  const isOpen = body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open', isOpen);
+};
 
 window.toggleRefugo = function(id) {
   const body = document.getElementById(id);
@@ -2669,6 +2688,29 @@ function setupCodigoAutocomplete(codId, modId, tenId) {
   input.addEventListener('focus', () => renderDrop(input.value));
   input.addEventListener('input', () => renderDrop(input.value));
   input.addEventListener('blur',  () => setTimeout(() => { drop.style.display = 'none'; }, 180));
+
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const firstItem = drop.querySelector('.ac-item');
+    if (!firstItem || drop.style.display === 'none') return;
+
+    // Seleciona o primeiro item da lista
+    e.preventDefault();
+    input.value = firstItem.dataset.code;
+    const modEl = document.getElementById(modId);
+    const tenEl = document.getElementById(tenId);
+    if (modEl) modEl.value = firstItem.dataset.modelo;
+    if (tenEl) tenEl.value = firstItem.dataset.tensao;
+    drop.style.display = 'none';
+    input.style.borderColor = 'var(--green)';
+    setTimeout(() => { input.style.borderColor = ''; }, 1500);
+
+    // Foca no próximo campo de código abaixo
+    const allCodInputs = Array.from(document.querySelectorAll('input[id$="-cod"]'));
+    const currentIdx = allCodInputs.indexOf(input);
+    const nextCod = allCodInputs[currentIdx + 1];
+    if (nextCod) nextCod.focus();
+  });
 }
 
 window.salvarRefugo = async function() {
