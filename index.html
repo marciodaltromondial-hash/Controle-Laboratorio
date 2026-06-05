@@ -674,7 +674,6 @@
       </div>
       <button class="btn-historico" id="btn-back-historico">← Voltar para Produtos</button>
     </div>
-    <div class="hist-stats" id="hist-stats"></div>
     <div class="hist-filters">
       <div class="search-wrap" style="min-width:240px">
         <span class="search-icon">🔍</span>
@@ -1320,9 +1319,9 @@ function getFiltered(q) {
 function renderStats() {
   const total = products.length, totalQty = products.reduce((a,b)=>a+(b.qty||0),0), zero = products.filter(p=>(p.qty||0)===0).length;
   document.getElementById('stats-view').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total de Produtos</div><div class="stat-value blue">${total}</div></div>
-    <div class="stat-card"><div class="stat-label">Unidades em Estoque</div><div class="stat-value green">${totalQty}</div></div>
-    <div class="stat-card"><div class="stat-label">Produtos Zerados</div><div class="stat-value" style="color:var(--red)">${zero}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Total de Modelos</div><div class="stat-value blue">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Total de Saldo em Estoque</div><div class="stat-value green">${totalQty}</div></div>
+    <div class="stat-card"><div class="stat-label">Modelos com Estoque Zerado</div><div class="stat-value" style="color:var(--red)">${zero}</div></div>`;
 }
 function qtyBadge(qty) {
   const cls = qty===0?'zero':qty===1?'warn':'ok';
@@ -1842,15 +1841,15 @@ function gerarRelatorio() {
 
   <div class="summary">
     <div class="summary-card blue">
-      <div class="summary-label">Total de Produtos</div>
+      <div class="summary-label">Total de Modelos</div>
       <div class="summary-value">${data.length}</div>
     </div>
     <div class="summary-card green">
-      <div class="summary-label">Unidades em Estoque</div>
+      <div class="summary-label">Total de Saldo em Estoque</div>
       <div class="summary-value">${totalQty}</div>
     </div>
     <div class="summary-card red">
-      <div class="summary-label">Produtos Zerados</div>
+      <div class="summary-label">Modelos com Estoque Zerado</div>
       <div class="summary-value">${zerados}</div>
     </div>
   </div>
@@ -1883,7 +1882,6 @@ const PER_PAGE_HIST = 30;
 
 async function loadHistoricoGeral() {
   document.getElementById('tbody-hist').innerHTML = '<tr><td colspan="6" class="hist-loading">⏳ Carregando histórico...</td></tr>';
-  document.getElementById('hist-stats').innerHTML = '';
   try {
     const snap = await getDocs(collection(db, 'movements'));
     allMovements = snap.docs.map(d => d.data());
@@ -1915,16 +1913,6 @@ function getFilteredHist() {
 
 function renderHistorico() {
   const data = getFilteredHist();
-  const totalEntradas = data.filter(m => m.type === 'in').reduce((a,m) => a + (m.qty||0), 0);
-  const totalSaidas   = data.filter(m => m.type === 'out').reduce((a,m) => a + (m.qty||0), 0);
-
-  // Stats
-  document.getElementById('hist-stats').innerHTML = `
-    <div class="hist-stat"><div class="hist-stat-label">Total de Registros</div><div class="hist-stat-value" style="color:var(--accent)">${data.length}</div></div>
-    <div class="hist-stat"><div class="hist-stat-label">Unidades Entrada</div><div class="hist-stat-value" style="color:var(--green)">+${totalEntradas}</div></div>
-    <div class="hist-stat"><div class="hist-stat-label">Unidades Saída</div><div class="hist-stat-value" style="color:var(--yellow)">−${totalSaidas}</div></div>
-  `;
-
   // Table
   const pages = Math.max(1, Math.ceil(data.length / PER_PAGE_HIST));
   if (pagHist > pages) pagHist = pages;
