@@ -729,7 +729,7 @@
   <th class="sortable" id="th-view-familia" data-sort="view" data-field="familia">Família ↕</th>
   <th class="sortable" id="th-view-modelo" data-sort="view" data-field="modelo">Modelo ↕</th>
   <th>Tensão</th>
-  <th>Qtd. Atual</th>
+  <th class="sortable" id="th-view-qty" data-sort="view" data-field="qty">Qtd. Atual ↕</th>
   <th>Ações</th>
 </tr></thead>
         <tbody id="tbody-view"></tbody>
@@ -832,7 +832,7 @@
   <th class="sortable" id="th-manage-familia" data-sort="manage" data-field="familia">Família ↕</th>
   <th class="sortable" id="th-manage-modelo" data-sort="manage" data-field="modelo">Modelo ↕</th>
   <th>Tensão</th>
-  <th>Saldo</th><th>Ações</th>
+  <th class="sortable" id="th-manage-qty" data-sort="manage" data-field="qty">Saldo ↕</th><th>Ações</th>
 </tr></thead>
         <tbody id="tbody-manage"></tbody>
       </table>
@@ -1436,6 +1436,11 @@ function renderAvatarEl(u, size=38) {
 function renderAll() { renderStats(); renderView(); renderManage(); renderUsers(); }
 function getSorted(data, sort) {
   return [...data].sort((a, b) => {
+    if (sort.field === 'qty') {
+      const va = Number(a.qty) || 0;
+      const vb = Number(b.qty) || 0;
+      return sort.dir === 'asc' ? va - vb : vb - va;
+    }
     const va = (a[sort.field]||'').toString().toLowerCase();
     const vb = (b[sort.field]||'').toString().toLowerCase();
     return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -1443,8 +1448,8 @@ function getSorted(data, sort) {
 }
 
 function updateSortHeaders(prefix, sort) {
-  const labels = { code: 'Código', familia: 'Família', modelo: 'Modelo' };
-  ['code','familia','modelo'].forEach(f => {
+  const labels = { code: 'Código', familia: 'Família', modelo: 'Modelo', qty: prefix === 'manage' ? 'Saldo' : 'Qtd. Atual' };
+  ['code','familia','modelo','qty'].forEach(f => {
     const th = document.getElementById(`th-${prefix}-${f}`);
     if (!th) return;
     th.className = 'sortable';
@@ -2207,7 +2212,7 @@ function renderRefugos() {
       return `
         <div class="caixa-section">
           <div class="caixa-header" onclick="toggleCaixa('caixa-body-${idx}-${ci}', this)">
-            <div class="caixa-title">📦 ${c.nome}${c.reserva ? '<span style="font-size:11px;font-weight:600;color:var(--yellow);background:rgba(247,195,79,.12);border:1px solid rgba(247,195,79,.3);border-radius:5px;padding:2px 8px;margin-left:10px;font-family:var(--mono)">🔖 ' + c.reserva + '</span>' : ''}</div>
+            <div class="caixa-title">📦 ${r.id ? `<span class="caixa-nome-editable" contenteditable="true" spellcheck="false" title="Clique para renomear a caixa" onclick="event.stopPropagation()" onfocus="event.stopPropagation();this.style.borderBottomColor='var(--accent)'" onblur="this.style.borderBottomColor='transparent';renomearCaixa(this,'${r.id}',${ci})" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="outline:none;border-bottom:1px dashed transparent;cursor:text;padding:0 2px;border-radius:3px;transition:border-color .15s">${c.nome}</span>` : c.nome}${c.reserva ? '<span style="font-size:11px;font-weight:600;color:var(--yellow);background:rgba(247,195,79,.12);border:1px solid rgba(247,195,79,.3);border-radius:5px;padding:2px 8px;margin-left:10px;font-family:var(--mono)">🔖 ' + c.reserva + '</span>' : ''}</div>
             <div style="display:flex;align-items:center;gap:10px">
               <div class="caixa-count">${(c.produtos||[]).reduce((a,p)=>a+(parseInt(p.qty)||0),0)} unidades</div>
               <button class="btn-action btn-edit" style="font-size:11.5px;padding:4px 10px" onclick="event.stopPropagation();gerarPDFCaixa(${idx}, ${ci})">🖨️ PDF Caixa</button>
@@ -2250,6 +2255,26 @@ function renderRefugos() {
       </div>`;
   }).join('');
 }
+
+window.renomearCaixa = async function(el, refugoId, ci) {
+  const r = refugos.find(x => x.id === refugoId);
+  if (!r || !r.caixas || !r.caixas[ci]) return;
+  const nomeAntigo = r.caixas[ci].nome || '';
+  const novoNome = (el.textContent || '').trim();
+  if (!novoNome) { el.textContent = nomeAntigo; return; }
+  if (novoNome === nomeAntigo) return;
+  el.textContent = novoNome;
+  const caixasAtualizadas = r.caixas.map((c, i) => i === ci ? { ...c, nome: novoNome } : c);
+  try {
+    setSyncStatus('syncing');
+    await updateDoc(doc(db, 'refugos', refugoId), { caixas: caixasAtualizadas });
+    r.caixas = caixasAtualizadas;
+    toast('Nome da caixa atualizado para "' + novoNome + '"!', 'green');
+  } catch (e) {
+    el.textContent = nomeAntigo;
+    toast('Erro ao renomear caixa: ' + e.message, 'red');
+  }
+};
 
 window.toggleCaixa = function(bodyId, headerEl) {
   const body  = document.getElementById(bodyId);
