@@ -811,11 +811,17 @@
     <div class="import-section" id="import-section" style="display:none">
       <div class="import-title">📦 Importar dados iniciais</div>
       <div class="import-sub">O banco está vazio. Importe todos os produtos da planilha com um clique.</div>
-      <button class="btn-import" onclick="importInitialData()">Importar Produtos da Planilha</button>
+      <button class="btn-import" id="btn-import-data" onclick="importInitialData()">Importar Produtos da Planilha</button>
       <div class="import-progress" id="import-progress">
         <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
         <div class="progress-text" id="progress-text">Importando...</div>
       </div>
+    </div>
+
+    <div class="import-section" id="danger-zone" style="display:none;border-color:rgba(247,96,79,.3)">
+      <div class="import-title" style="color:var(--red)">⚠️ Zona de Perigo</div>
+      <div class="import-sub">Apaga permanentemente todos os produtos cadastrados e zera o estoque, para recomeçar o cadastro do zero. Disponível apenas para administradores.</div>
+      <button class="btn-import" id="btn-apagar-tudo" style="background:rgba(247,96,79,.1);border-color:rgba(247,96,79,.3);color:var(--red)" onclick="confirmApagarTudo()">🗑️ Apagar Todos os Produtos</button>
     </div>
 
     <div class="toolbar">
@@ -1397,6 +1403,8 @@ window.doLogin = function() {
   // Only Usuários is restricted to admin only
   document.getElementById('card-usuarios').style.display = isAdmin ? '' : 'none';
   document.getElementById('card-intervention').style.display = isAdmin ? '' : 'none';
+  const dangerZone = document.getElementById('danger-zone');
+  if (dangerZone) dangerZone.style.display = isAdmin ? '' : 'none';
   goHome(); renderAll();
 };
 
@@ -1895,7 +1903,7 @@ window.deleteUser = async function(id) {
 
 // ── IMPORTAR DADOS INICIAIS ──────────────────────────
 window.importInitialData = async function() {
-  const btn = document.querySelector('.btn-import');
+  const btn = document.getElementById('btn-import-data');
   btn.disabled=true; btn.textContent='Importando...';
   document.getElementById('import-progress').style.display='block';
   const total=INITIAL_PRODUCTS.length; let done=0;
@@ -1913,6 +1921,44 @@ window.importInitialData = async function() {
   toast(total+' produtos importados!','green');
   document.getElementById('import-progress').style.display='none';
   btn.disabled=false;
+};
+
+// ── APAGAR TODOS OS PRODUTOS (ADMIN) ─────────────────
+window.confirmApagarTudo = function() {
+  if (!currentUser || currentUser.role !== 'admin') { toast('Apenas administradores podem realizar esta ação.', 'red'); return; }
+  openModal(`
+    <div class="modal-title" style="color:var(--red)">⚠️ Apagar Todos os Produtos</div>
+    <div class="modal-sub">Esta ação é <b>irreversível</b>. Todos os <b>${products.length}</b> produtos cadastrados serão removidos permanentemente e o estoque ficará zerado, para você recomeçar o cadastro do zero.</div>
+    <div style="background:var(--surface2);border:1px solid rgba(247,96,79,.3);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;margin-bottom:10px">Para confirmar, digite <b>APAGAR TUDO</b> abaixo:</div>
+      <input id="confirma-apagar-tudo" placeholder="Digite APAGAR TUDO" autocomplete="off"
+        style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:14px;outline:none">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-modal-confirm" style="background:var(--red)" onclick="doApagarTudo()">Sim, Apagar Tudo</button>
+    </div>`);
+};
+
+window.doApagarTudo = async function() {
+  if (!currentUser || currentUser.role !== 'admin') { toast('Apenas administradores podem realizar esta ação.', 'red'); return; }
+  const val = (document.getElementById('confirma-apagar-tudo')?.value || '').trim().toUpperCase();
+  if (val !== 'APAGAR TUDO') { toast('Digite exatamente "APAGAR TUDO" para confirmar.', 'red'); return; }
+  closeModal();
+  setSyncStatus('syncing');
+  try {
+    const snap = await getDocs(collection(db, 'products'));
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += 400) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    toast('Todos os produtos foram apagados. Estoque zerado!', 'green');
+  } catch (e) {
+    setSyncStatus('error');
+    toast('Erro ao apagar produtos: ' + e.message, 'red');
+  }
 };
 
 
@@ -2722,7 +2768,8 @@ window.addCaixa = function() {
       <span></span>
     </div>
     <div id="produtos-caixa-${caixaCount}"></div>`;
-  builder.appendChild(div);
+  const primeiroSoltos = builder.querySelector('[data-tipo="soltos"]');
+  if (primeiroSoltos) { builder.insertBefore(div, primeiroSoltos); } else { builder.appendChild(div); }
   addProdutoCaixa(caixaCount);
 };
 
@@ -2733,6 +2780,7 @@ window.addSoltos = function() {
   const div = document.createElement('div');
   div.className = 'caixa-builder-item';
   div.id = 'caixa-' + caixaCount;
+  div.dataset.tipo = 'soltos';
   div.style.cssText = 'border-color:rgba(247,195,79,.35)';
   div.innerHTML = `
     <div class="caixa-builder-header">
