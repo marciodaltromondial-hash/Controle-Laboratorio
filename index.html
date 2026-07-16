@@ -1431,6 +1431,9 @@ window.switchTab = function(tab) {
   if (t) t.style.display = 'block';
   document.getElementById('btn-back').classList.add('visible');
   if (tab === 'refugos') loadRefugos();
+  // Reforço defensivo: garante que a tabela exibida sempre reflita o estado mais atual de `products`
+  if (tab === 'produtos') { renderStats(); renderView(); }
+  if (tab === 'gerenciador') { renderManage(); }
 };
 
 // ── RENDER ───────────────────────────────────────────
