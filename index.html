@@ -1365,7 +1365,7 @@ function startListeners() {
     if (currentUser) { renderStats(); renderView(); renderManage(); }
     setSyncStatus('ok');
     const imp = document.getElementById('import-section');
-    if (imp) imp.style.display = products.length === 0 ? 'block' : 'none';
+    if (imp) imp.style.display = (products.length === 0 && currentUser && currentUser.role === 'admin') ? 'block' : 'none';
 
   }, () => setSyncStatus('error'));
 
@@ -1526,7 +1526,7 @@ function renderManage() {
   if (pagManage > pages) pagManage = pages;
   const slice = data.slice((pagManage-1)*PER_PAGE, pagManage*PER_PAGE);
   const imp = document.getElementById('import-section');
-  if (imp) imp.style.display = products.length===0 ? 'block' : 'none';
+  if (imp) imp.style.display = (products.length===0 && currentUser && currentUser.role==='admin') ? 'block' : 'none';
 
   document.getElementById('tbody-manage').innerHTML = slice.length
     ? slice.map(p=>`<tr>
@@ -1906,6 +1906,7 @@ window.deleteUser = async function(id) {
 
 // ── IMPORTAR DADOS INICIAIS ──────────────────────────
 window.importInitialData = async function() {
+  if (!currentUser || currentUser.role !== 'admin') { toast('Apenas administradores podem importar os dados iniciais.', 'red'); return; }
   const btn = document.getElementById('btn-import-data');
   btn.disabled=true; btn.textContent='Importando...';
   document.getElementById('import-progress').style.display='block';
