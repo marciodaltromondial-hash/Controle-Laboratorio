@@ -858,10 +858,33 @@
   <!-- PAGE: INTERVENTION REPORT -->
   <div class="page" id="page-intervention" style="padding:28px 32px;display:none">
     <div class="page-header">
-      <div><div class="page-title">Intervention Report <small>Fill in the form and generate the PDF in Portuguese and English</small></div></div>
+      <div><div class="page-title">Intervention Report <small>Choose an option to continue</small></div></div>
       <button class="btn-back-page" onclick="goHome()" style="padding:8px 18px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:9px;font-family:var(--font);font-size:13px;cursor:pointer">← Back to Menu</button>
     </div>
-  
+
+    <!-- LANDING: ESCOLHA DE AÇÃO -->
+    <div id="ir-landing" style="display:flex;gap:20px;flex-wrap:wrap;margin-top:12px">
+      <div class="ir-landing-card" onclick="irNovoReport()" style="flex:1;min-width:260px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 28px;cursor:pointer;transition:all .2s;text-align:center">
+        <div style="font-size:38px;margin-bottom:14px">📝</div>
+        <div style="font-size:17px;font-weight:800;margin-bottom:8px">Cadastrar Novo Report</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5">Preencher um formulário em branco e gerar um novo Intervention Report.</div>
+      </div>
+      <div class="ir-landing-card" onclick="irAbrirSalvos()" style="flex:1;min-width:260px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 28px;cursor:pointer;transition:all .2s;text-align:center">
+        <div style="font-size:38px;margin-bottom:14px">📋</div>
+        <div style="font-size:17px;font-weight:800;margin-bottom:8px">Consultar Reports Salvos</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5">Ver, carregar, gerar PDF ou remover relatórios já salvos no banco.</div>
+      </div>
+    </div>
+    <style>
+      .ir-landing-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,142,247,.15); }
+    </style>
+
+    <!-- FORMULÁRIO (oculto até escolher "Cadastrar Novo Report" ou carregar um salvo) -->
+    <div id="ir-form-container" style="display:none">
+    <div style="margin-bottom:18px">
+      <button onclick="irVoltarLanding()" style="padding:7px 16px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:9px;font-family:var(--font);font-size:12px;cursor:pointer">← Intervention Report Menu</button>
+    </div>
+
     <!-- DADOS DO PRODUTO -->
     <div class="ir-form-section">
       <div class="ir-section-title">Product Data</div>
@@ -938,6 +961,7 @@
       <button class="btn-ir-list" onclick="irAbrirSalvos()">📋 Saved Reports</button>
       <button class="btn-ir-save" onclick="irSalvarBD()">💾 Salvar</button>
       <button class="btn-ir-pdf" onclick="irGerarPDF()">🖨️ Generate Full PDF</button>
+    </div>
     </div>
   </div>
 
@@ -1424,7 +1448,7 @@ window.goHome = function() {
   document.getElementById('btn-back').classList.remove('visible');
 };
 window.switchTab = function(tab) {
-  if (tab === 'intervention') { irInitSections(); }
+  if (tab === 'intervention') { irVoltarLanding(); }
   document.getElementById('page-home').style.display = 'none';
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
   const t = document.getElementById('page-' + tab);
@@ -3633,6 +3657,7 @@ window.irCarregarRelatorio = async function(id) {
     const r = { id: docSnap.id, ...docSnap.data() };
 
     closeModal();
+    irMostrarFormulario();
 
     document.getElementById('ir-model').value    = r.model || '';
     document.getElementById('ir-voltage').value  = r.voltage || '';
@@ -3747,6 +3772,31 @@ window.irDeletarRelatorio = async function(id) {
   }
 };
 
+
+// ─── Navegação Landing ↔ Formulário ─────────────────
+window.irMostrarFormulario = function() {
+  const landing = document.getElementById('ir-landing');
+  const form = document.getElementById('ir-form-container');
+  if (landing) landing.style.display = 'none';
+  if (form) form.style.display = 'block';
+};
+
+window.irVoltarLanding = function() {
+  const landing = document.getElementById('ir-landing');
+  const form = document.getElementById('ir-form-container');
+  if (form) form.style.display = 'none';
+  if (landing) landing.style.display = 'flex';
+};
+
+window.irNovoReport = function() {
+  // Limpa os campos de cabeçalho para começar um relatório em branco
+  ['ir-model','ir-voltage','ir-serial','ir-code','ir-test-start','ir-final-date','ir-rejecdate','ir-horas','ir-percent','ir-version','ir-manufacturer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  irInitSections();
+  irMostrarFormulario();
+};
 
 function irInitSections() {
   // Limpar
