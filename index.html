@@ -965,11 +965,33 @@
     </div>
   </div>
 
+  <!-- PAGE: SAVED REPORTS (Intervention Report) -->
+  <div class="page" id="page-ir-saved" style="padding:28px 32px;display:none">
+    <div class="page-header">
+      <div><div class="page-title">Saved Reports <small>Intervention Reports salvos no banco de dados</small></div></div>
+      <button class="btn-back-page" onclick="irVoltarLandingFromSaved()" style="padding:8px 18px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:9px;font-family:var(--font);font-size:13px;cursor:pointer">← Intervention Report Menu</button>
+    </div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="ir-saved-search" placeholder="Buscar por código, modelo ou serial number..." oninput="pagIrSaved=1;renderIrSavedTable()">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Modelo</th><th>Code</th><th>Serial Number</th><th>Resultado</th><th>Salvo em</th><th>Por</th><th>Ações</th></tr></thead>
+        <tbody id="tbody-ir-saved"></tbody>
+      </table>
+      <div class="pagination" id="pag-ir-saved"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODALS -->
 <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal">
+
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div id="modal-content"></div>
   </div>
@@ -3055,6 +3077,8 @@ document.addEventListener('click', e => {
 let irResult = null;
 let irFotos = []; // [{name, dataUrl}]
 let irSectionCountPt = 0, irSectionCountEn = 0;
+let irSavedReports = [];
+let pagIrSaved = 1;
 
 window.irCalcPercent = function() {
   const start = document.getElementById('ir-test-start').value;
@@ -3565,57 +3589,83 @@ window.irSalvarBD = async function() {
   }
 };
 
-// ─── Abrir modal com relatórios salvos ────────────────────────────────────────
-window.irAbrirSalvos = async function() {
-  openModal(`
-    <div class="modal-title">📋 Saved Reports</div>
-    <div class="modal-sub">Intervention Reports salvos no banco de dados</div>
-    <div class="ir-saved-list" id="ir-saved-list">
-      <div class="ir-saved-empty">Carregando...</div>
-    </div>
-  `);
-  const modalEl = document.getElementById('modal');
-  if (modalEl) { modalEl.style.maxWidth = '680px'; modalEl.style.width = '680px'; }
+window.irVoltarLandingFromSaved = function() {
+  switchTab('intervention');
+};
 
+window.irShowSavedPage = function() {
+  document.getElementById('page-home').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  const t = document.getElementById('page-ir-saved');
+  if (t) t.style.display = 'block';
+  document.getElementById('btn-back').classList.add('visible');
+};
+
+window.irAbrirSalvos = async function() {
+  irShowSavedPage();
+  const searchEl = document.getElementById('ir-saved-search');
+  if (searchEl) searchEl.value = '';
+  pagIrSaved = 1;
+  document.getElementById('tbody-ir-saved').innerHTML = '<tr class="empty-row"><td colspan="7">Carregando...</td></tr>';
   try {
     const snap = await getDocs(query(collection(db, 'intervention_reports'), orderBy('createdAt', 'desc')));
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const listEl = document.getElementById('ir-saved-list');
-    if (!listEl) return;
-    if (items.length === 0) {
-      listEl.innerHTML = '<div class="ir-saved-empty">Nenhum relatório salvo ainda.</div>';
-      return;
-    }
-    listEl.innerHTML = items.map(r => {
-      const savedAt = r.savedAt?.toDate ? r.savedAt.toDate().toLocaleDateString('pt-BR') + ' ' + r.savedAt.toDate().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '--';
-      const resultBadge = r.result === 'approved'
-        ? '<span style="color:var(--green);font-weight:700">✅ Approved</span>'
-        : r.result === 'rejected'
-          ? '<span style="color:var(--red);font-weight:700">❌ Rejected</span>'
-          : '<span style="color:var(--muted)">—</span>';
-      return `
-        <div class="ir-saved-card">
-          <div class="ir-saved-info">
-            <div class="ir-saved-model">${r.model}${r.voltage ? ' — ' + r.voltage : ''}${r.code ? ' &nbsp;<span style="font-family:monospace;font-size:12px;color:var(--accent);background:rgba(79,142,247,.1);padding:2px 7px;border-radius:5px">' + r.code + '</span>' : ''}</div>
-            <div class="ir-saved-meta">
-              <span>📅 Salvo em: ${savedAt}</span>
-              <span>👤 ${r.savedBy || '--'}</span>
-              ${r.serial ? `<span>S/N: ${r.serial}</span>` : ''}
-              <span>${resultBadge}</span>
-            </div>
-          </div>
-          <div class="ir-saved-actions">
-            <button class="btn-action btn-edit" onclick="irCarregarRelatorio('${r.id}')">📂 Carregar</button>
-            <button class="btn-action btn-in" onclick="irGerarPDFSalvo('${r.id}')">🖨️ PDF</button>
-            <button class="btn-action btn-del" onclick="irDeletarRelatorio('${r.id}')">🗑</button>
-          </div>
-        </div>`;
-    }).join('');
+    irSavedReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderIrSavedTable();
   } catch(e) {
-    const listEl = document.getElementById('ir-saved-list');
-    if (listEl) listEl.innerHTML = '<div class="ir-saved-empty">Erro ao carregar: ' + e.message + '</div>';
+    document.getElementById('tbody-ir-saved').innerHTML = '<tr class="empty-row"><td colspan="7">Erro ao carregar: ' + e.message + '</td></tr>';
   }
 };
+
+function renderIrSavedTable() {
+  const tbody = document.getElementById('tbody-ir-saved');
+  if (!tbody) return;
+  const q = (document.getElementById('ir-saved-search')?.value || '').trim().toLowerCase();
+  // Ordena sempre pela data mais recente primeiro (createdAt, com fallback para savedAt)
+  const toMillis = r => (r.createdAt?.toMillis ? r.createdAt.toMillis() : (r.savedAt?.toMillis ? r.savedAt.toMillis() : 0));
+  let data = [...irSavedReports].sort((a,b) => toMillis(b) - toMillis(a));
+  if (q) {
+    data = data.filter(r =>
+      (r.code || '').toLowerCase().includes(q) ||
+      (r.model || '').toLowerCase().includes(q) ||
+      (r.serial || '').toLowerCase().includes(q)
+    );
+  }
+  const pages = Math.max(1, Math.ceil(data.length / PER_PAGE));
+  if (pagIrSaved > pages) pagIrSaved = pages;
+  const slice = data.slice((pagIrSaved-1)*PER_PAGE, pagIrSaved*PER_PAGE);
+
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">${irSavedReports.length === 0 ? 'Nenhum relatório salvo ainda.' : 'Nenhum relatório encontrado para a busca.'}</td></tr>`;
+    document.getElementById('pag-ir-saved').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = slice.map(r => {
+    const savedAt = r.createdAt?.toDate ? r.createdAt.toDate() : (r.savedAt?.toDate ? r.savedAt.toDate() : null);
+    const savedAtStr = savedAt ? savedAt.toLocaleDateString('pt-BR') + ' ' + savedAt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '--';
+    const resultBadge = r.result === 'approved'
+      ? '<span style="color:var(--green);font-weight:700">✅ Approved</span>'
+      : r.result === 'rejected'
+        ? '<span style="color:var(--red);font-weight:700">❌ Rejected</span>'
+        : '<span style="color:var(--muted)">—</span>';
+    return `
+      <tr>
+        <td>${r.model || '--'}${r.voltage ? ' — ' + r.voltage : ''}</td>
+        <td>${r.code ? `<span class="code-cell">${r.code}</span>` : '--'}</td>
+        <td>${r.serial || '--'}</td>
+        <td>${resultBadge}</td>
+        <td>${savedAtStr}</td>
+        <td>${r.savedBy || '--'}</td>
+        <td><div class="actions-cell">
+          <button class="btn-action btn-edit" onclick="irCarregarRelatorio('${r.id}')">📂 Carregar</button>
+          <button class="btn-action btn-in" onclick="irGerarPDFSalvo('${r.id}')">🖨️ PDF</button>
+          <button class="btn-action btn-del" onclick="irDeletarRelatorio('${r.id}')">🗑</button>
+        </div></td>
+      </tr>`;
+  }).join('');
+
+  renderPag('pag-ir-saved', pagIrSaved, pages, data.length, n => { pagIrSaved = n; renderIrSavedTable(); });
+}
 
 // ─── Helper: preenche seções/defeitos no formulário a partir de arrays salvos ─
 function irPreencherSecoes(lang, arr) {
@@ -3656,7 +3706,7 @@ window.irCarregarRelatorio = async function(id) {
     if (!docSnap.exists()) { toast('Relatório não encontrado.', 'red'); return; }
     const r = { id: docSnap.id, ...docSnap.data() };
 
-    closeModal();
+    switchTab('intervention');
     irMostrarFormulario();
 
     document.getElementById('ir-model').value    = r.model || '';
