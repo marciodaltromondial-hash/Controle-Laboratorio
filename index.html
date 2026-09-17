@@ -339,6 +339,7 @@
   .toast { position: fixed; bottom: 32px; right: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; font-size: 15.4px; z-index: 9999; display: flex; align-items: center; gap: 10px; animation: slideUp .3s ease; max-width: 300px; }
   .toast.green { border-color: rgba(62,207,142,.3); }
   .toast.red { border-color: rgba(247,96,79,.3); }
+  .toast.yellow { border-color: rgba(247,195,79,.3); }
   .admin-badge { background: rgba(79,142,247,.15); border: 1px solid rgba(79,142,247,.3); color: var(--accent); padding: 3px 8px; border-radius: 6px; font-size: 12.1px; font-weight: 600; letter-spacing: .5px; }
 
   /* USER MANAGEMENT */
@@ -1380,6 +1381,34 @@ function showLoading(msg) {
 }
 function hideLoading() { document.getElementById('loading-screen').style.display = 'none'; }
 
+// ── SEGURANÇA: escape de HTML ────────────────────────
+// Qualquer texto vindo do Firestore (nomes, observações, modelos, etc.)
+// deve passar por aqui antes de ser inserido via innerHTML, para evitar
+// que alguém injete <script>/onerror=... em campos de texto e execute
+// código na tela de outros usuários (XSS armazenado).
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+// Versão para uso dentro de atributos HTML (value="...", title="...", etc.)
+// Idêntica ao escapeHtml, mas com nome próprio para deixar claro o contexto de uso.
+function escapeAttr(value) { return escapeHtml(value); }
+
+// ── Ajuda: bloqueia um botão durante uma ação assíncrona (evita duplo clique / envio duplicado) ──
+// Uso: const done = setBtnLoading(btn, 'Salvando...'); try { ... } finally { done(); }
+function setBtnLoading(btn, loadingText) {
+  if (!btn) return () => {};
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = loadingText;
+  return () => { btn.disabled = false; btn.textContent = original; };
+}
+
 // ── FIREBASE INIT ────────────────────────────────────
 async function connectFirebase() {
   showLoading('Conectando ao Firebase...');
@@ -1432,7 +1461,7 @@ window.doLogin = function() {
   document.getElementById('app').style.display = 'block';
   const avatarEl = document.getElementById('user-avatar');
   if (found.avatar) {
-    avatarEl.innerHTML = `<img src="${found.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    avatarEl.innerHTML = `<img src="${escapeAttr(found.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
   } else {
     avatarEl.innerHTML = '';
     avatarEl.textContent = found.name[0].toUpperCase();
@@ -1485,9 +1514,9 @@ window.switchTab = function(tab) {
 // ── RENDER ───────────────────────────────────────────
 function renderAvatarEl(u, size=38) {
   if (u.avatar) {
-    return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,var(--accent2),var(--accent))"><img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,var(--accent2),var(--accent))"><img src="${escapeAttr(u.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
   }
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.38)}px;font-weight:800;color:#fff;flex-shrink:0">${(u.name||'?')[0].toUpperCase()}</div>`;
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.38)}px;font-weight:800;color:#fff;flex-shrink:0">${escapeHtml((u.name||'?')[0].toUpperCase())}</div>`;
 }
 
 function renderAll() { renderStats(); renderView(); renderManage(); renderUsers(); }
@@ -1551,10 +1580,10 @@ function renderView() {
   const slice = data.slice((pagView-1)*PER_PAGE, pagView*PER_PAGE);
   document.getElementById('tbody-view').innerHTML = slice.length
     ? slice.map(p=>`<tr style="cursor:pointer" onclick="openProductDetail('${p.id}')" title="Clique para ver o histórico">
-        <td><span class="code-cell">${p.code}</span></td>
-        <td>${p.familia||p.model||''}</td>
-        <td>${p.modelo||''}</td>
-        <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${p.tensao||''}</span></td>
+        <td><span class="code-cell">${escapeHtml(p.code)}</span></td>
+        <td>${escapeHtml(p.familia||p.model||'')}</td>
+        <td>${escapeHtml(p.modelo||'')}</td>
+        <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${escapeHtml(p.tensao||'')}</span></td>
         <td>${qtyBadge(p.qty||0)}</td>
         <td><div class="actions-cell" onclick="event.stopPropagation()">
           <button class="btn-action btn-in" onclick="openEntrada('${p.id}')">📥 Entrada</button>
@@ -1576,10 +1605,10 @@ function renderManage() {
 
   document.getElementById('tbody-manage').innerHTML = slice.length
     ? slice.map(p=>`<tr>
-        <td><span class="code-cell">${p.code}</span></td>
-        <td>${p.familia||p.model||''}</td>
-        <td>${p.modelo||''}</td>
-        <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${p.tensao||''}</span></td>
+        <td><span class="code-cell">${escapeHtml(p.code)}</span></td>
+        <td>${escapeHtml(p.familia||p.model||'')}</td>
+        <td>${escapeHtml(p.modelo||'')}</td>
+        <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${escapeHtml(p.tensao||'')}</span></td>
         <td>${qtyBadge(p.qty||0)}</td>
         <td><div class="actions-cell">
           <button class="btn-action btn-edit" onclick="openEdit('${p.id}')">✏️ Editar</button>
@@ -1611,14 +1640,14 @@ function renderUsers() {
       <div class="user-info">
         ${renderAvatarEl(u, 40)}
         <div>
-          <div class="user-name">${u.name} ${u.role==='admin'?'<span class="admin-badge">ADMIN</span>':u.role==='editor'?'<span class="admin-badge" style="background:rgba(62,207,142,.15);border-color:rgba(62,207,142,.3);color:var(--green)">EDITOR</span>':''}</div>
-          <div class="user-email">${u.funcao||'—'}</div>
+          <div class="user-name">${escapeHtml(u.name)} ${u.role==='admin'?'<span class="admin-badge">ADMIN</span>':u.role==='editor'?'<span class="admin-badge" style="background:rgba(62,207,142,.15);border-color:rgba(62,207,142,.3);color:var(--green)">EDITOR</span>':''}</div>
+          <div class="user-email">${escapeHtml(u.funcao||'—')}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <div class="user-creds">Login: <span>${u.username}</span> &nbsp;|&nbsp; Senha: <span>${u.password}</span></div>
+        <div class="user-creds">Login: <span>${escapeHtml(u.username)}</span> &nbsp;|&nbsp; Senha: <span>${escapeHtml(u.password)}</span></div>
         ${isAdmin ? `<button class="btn-action btn-edit" onclick="editarAvatar('${u.id}')">📷 Foto</button>` : ''}
-        ${u.username!=='admin'&&isAdmin?`<button class="btn-action btn-del" onclick="deleteUser('${u.id}')">🗑 Remover</button>`:''}
+        ${u.username!=='admin'&&isAdmin?`<button class="btn-action btn-del" onclick="deleteUser('${u.id}', this)">🗑 Remover</button>`:''}
       </div>
     </div>`).join('');
 }
@@ -1630,10 +1659,10 @@ window.openProductDetail = async function(id) {
   modal.classList.add('modal-wide');
   openModal(`
     <div class="product-detail-header">
-      <div class="product-detail-badge">${p.code}</div>
+      <div class="product-detail-badge">${escapeHtml(p.code)}</div>
       <div class="product-detail-info">
-        <div class="product-detail-model">${p.familia||p.model||''}</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:3px">${p.modelo||''} ${p.tensao?'<span style="color:var(--accent);font-family:var(--mono);font-size:12px;margin-left:6px">'+p.tensao+'</span>':''}</div>
+        <div class="product-detail-model">${escapeHtml(p.familia||p.model||'')}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">${escapeHtml(p.modelo||'')} ${p.tensao?'<span style="color:var(--accent);font-family:var(--mono);font-size:12px;margin-left:6px">'+escapeHtml(p.tensao)+'</span>':''}</div>
         <div>${qtyBadge(p.qty||0)} <span style="font-size:12px;color:var(--muted);margin-left:6px">unidades em estoque</span></div>
       </div>
     </div>
@@ -1654,7 +1683,7 @@ window.openProductDetail = async function(id) {
         <span class="history-icon">${m.type==='in'?'📥':'📤'}</span>
         <div class="history-details">
           <div class="history-action">${m.type==='in'?'Entrada':'Saída'}</div>
-          <div class="history-who">por ${m.user||'—'}</div>
+          <div class="history-who">por ${escapeHtml(m.user||'—')}</div>
         </div>
         <span class="history-qty ${m.type}">${m.type==='in'?'+':'−'}${m.qty}</span>
         <span class="history-date">${fmtDate(m.date)}</span>
@@ -1676,105 +1705,147 @@ window.openModalNovoProduto = function() {
     <div class="form-group"><label>Modelo</label><input id="m-modelo" placeholder="ex: C-08" /></div>
     <div class="form-group"><label>Tensão</label><input id="m-tensao" placeholder="ex: 127V/60Hz ou BIVOLT" /></div>
     <div class="form-group"><label>Quantidade Inicial</label><input id="m-qty" type="number" min="0" value="0" /></div>
-    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmNovoProduto()">Adicionar Produto</button></div>`);
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmNovoProduto(this)">Adicionar Produto</button></div>`);
 };
-window.confirmNovoProduto = async function() {
+window.confirmNovoProduto = async function(btn) {
   const code   = document.getElementById('m-code').value.trim();
   const familia= document.getElementById('m-familia').value.trim().toUpperCase();
   const modelo = document.getElementById('m-modelo').value.trim().toUpperCase();
   const tensao = document.getElementById('m-tensao').value.trim().toUpperCase();
   const qty    = parseInt(document.getElementById('m-qty').value)||0;
   if(!code||!familia) { toast('Preencha pelo menos Código e Família!','red'); return; }
+  if(products.some(p => (p.code||'').trim().toLowerCase() === code.toLowerCase())) { toast('Já existe um produto com esse código!','red'); return; }
   const model  = [familia, modelo, tensao].filter(Boolean).join(' ');
+  const done = setBtnLoading(btn, 'Salvando...');
   setSyncStatus('syncing');
-  await addDoc(collection(db,'products'),{code,familia,modelo,tensao,model,qty,createdAt:serverTimestamp()});
-  closeModal(); toast('Produto adicionado!','green');
+  try {
+    await addDoc(collection(db,'products'),{code,familia,modelo,tensao,model,qty,createdAt:serverTimestamp()});
+    closeModal(); toast('Produto adicionado!','green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao adicionar produto: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 
 window.openEdit = function(id) {
   const p=products.find(x=>x.id===id); if(!p) return;
-  openModal(`<div class="modal-title">Editar Produto</div><div class="modal-sub"><span class="code-cell">${p.code}</span></div>
-    <div class="form-group"><label>Código</label><input id="m-code" value="${p.code}" /></div>
-    <div class="form-group"><label>Família</label><input id="m-familia" value="${p.familia||''}" /></div>
-    <div class="form-group"><label>Modelo</label><input id="m-modelo" value="${p.modelo||''}" /></div>
-    <div class="form-group"><label>Tensão</label><input id="m-tensao" value="${p.tensao||''}" /></div>
+  openModal(`<div class="modal-title">Editar Produto</div><div class="modal-sub"><span class="code-cell">${escapeHtml(p.code)}</span></div>
+    <div class="form-group"><label>Código</label><input id="m-code" value="${escapeAttr(p.code)}" /></div>
+    <div class="form-group"><label>Família</label><input id="m-familia" value="${escapeAttr(p.familia||'')}" /></div>
+    <div class="form-group"><label>Modelo</label><input id="m-modelo" value="${escapeAttr(p.modelo||'')}" /></div>
+    <div class="form-group"><label>Tensão</label><input id="m-tensao" value="${escapeAttr(p.tensao||'')}" /></div>
     <div class="form-group"><label>Quantidade Atual</label><input id="m-qty" type="number" min="0" value="${p.qty||0}" /></div>
-    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmEdit('${id}')">Salvar Alterações</button></div>`);
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="confirmEdit('${id}', this)">Salvar Alterações</button></div>`);
 };
-window.confirmEdit = async function(id) {
+window.confirmEdit = async function(id, btn) {
   const code   = document.getElementById('m-code').value.trim();
   const familia= document.getElementById('m-familia').value.trim().toUpperCase();
   const modelo = document.getElementById('m-modelo').value.trim().toUpperCase();
   const tensao = document.getElementById('m-tensao').value.trim().toUpperCase();
   const qty    = parseInt(document.getElementById('m-qty').value)||0;
+  if(!code) { toast('Informe o código do produto!','red'); return; }
   const model  = [familia, modelo, tensao].filter(Boolean).join(' ');
+  const done = setBtnLoading(btn, 'Salvando...');
   setSyncStatus('syncing');
-  await updateDoc(doc(db,'products',id),{code,familia,modelo,tensao,model,qty});
-  closeModal(); toast('Produto atualizado!','green');
+  try {
+    await updateDoc(doc(db,'products',id),{code,familia,modelo,tensao,model,qty});
+    closeModal(); toast('Produto atualizado!','green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao atualizar produto: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 
 window.openEntrada = function(id) {
   const p=products.find(x=>x.id===id); if(!p) return;
   const today=new Date().toISOString().slice(0,10);
-  openModal(`<div class="modal-title">📥 Entrada de Produto</div><div class="modal-sub">${p.model}</div>
+  openModal(`<div class="modal-title">📥 Entrada de Produto</div><div class="modal-sub">${escapeHtml(p.model)}</div>
     <div class="saldo-display"><div class="saldo-label">Saldo Atual</div><div class="saldo-value" style="color:var(--green)">${p.qty||0}</div></div>
     <div class="form-group"><label>Quantidade de Entrada</label><input id="m-qty" type="number" min="1" value="1" /></div>
     <div class="form-group"><label>Data da Entrada</label><input id="m-date" type="date" value="${today}" /></div>
     <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--green),#2ab87a)" onclick="confirmEntrada('${id}')">Confirmar Entrada</button></div>`);
+    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--green),#2ab87a)" onclick="confirmEntrada('${id}', this)">Confirmar Entrada</button></div>`);
 };
-window.confirmEntrada = async function(id) {
+window.confirmEntrada = async function(id, btn) {
   const p=products.find(x=>x.id===id); if(!p) return;
   const n=parseInt(document.getElementById('m-qty').value)||0, dateVal=document.getElementById('m-date').value;
   if(n<=0) { toast('Quantidade inválida!','red'); return; }
   if(!dateVal) { toast('Informe a data!','red'); return; }
+  const done = setBtnLoading(btn, 'Salvando...');
   setSyncStatus('syncing');
-  const batch=writeBatch(db);
-  batch.update(doc(db,'products',id),{qty:(p.qty||0)+n});
-  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'in',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
-  await batch.commit();
-  closeModal(); toast(`+${n} unidades adicionadas. Novo saldo: ${(p.qty||0)+n}`,'green');
+  try {
+    const batch=writeBatch(db);
+    batch.update(doc(db,'products',id),{qty:(p.qty||0)+n});
+    batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'in',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
+    await batch.commit();
+    closeModal(); toast(`+${n} unidades adicionadas. Novo saldo: ${(p.qty||0)+n}`,'green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao registrar entrada: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 
 window.openSaida = function(id) {
   const p=products.find(x=>x.id===id); if(!p) return;
   const today=new Date().toISOString().slice(0,10);
-  openModal(`<div class="modal-title">📤 Retirada de Produto</div><div class="modal-sub">${p.model}</div>
+  openModal(`<div class="modal-title">📤 Retirada de Produto</div><div class="modal-sub">${escapeHtml(p.model)}</div>
     <div class="saldo-display"><div class="saldo-label">Saldo Atual</div><div class="saldo-value" style="color:var(--yellow)">${p.qty||0}</div></div>
     <div class="form-group"><label>Quantidade Retirada</label><input id="m-qty" type="number" min="1" max="${p.qty||0}" value="1" /></div>
     <div class="form-group"><label>Data da Retirada</label><input id="m-date" type="date" value="${today}" /></div>
     <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--yellow),#e5a820);color:#111" onclick="confirmSaida('${id}')">Confirmar Retirada</button></div>`);
+    <button class="btn-modal-confirm" style="background:linear-gradient(135deg,var(--yellow),#e5a820);color:#111" onclick="confirmSaida('${id}', this)">Confirmar Retirada</button></div>`);
 };
-window.confirmSaida = async function(id) {
+window.confirmSaida = async function(id, btn) {
   const p=products.find(x=>x.id===id); if(!p) return;
   const n=parseInt(document.getElementById('m-qty').value)||0, dateVal=document.getElementById('m-date').value;
   if(n<=0) { toast('Quantidade inválida!','red'); return; }
   if(!dateVal) { toast('Informe a data!','red'); return; }
   if(n>(p.qty||0)) { toast(`Saldo insuficiente! Disponível: ${p.qty||0}`,'red'); return; }
+  const done = setBtnLoading(btn, 'Salvando...');
   setSyncStatus('syncing');
-  const batch=writeBatch(db);
-  batch.update(doc(db,'products',id),{qty:(p.qty||0)-n});
-  batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'out',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
-  await batch.commit();
-  closeModal(); toast(`−${n} unidades retiradas. Saldo restante: ${(p.qty||0)-n}`,'green');
+  try {
+    const batch=writeBatch(db);
+    batch.update(doc(db,'products',id),{qty:(p.qty||0)-n});
+    batch.set(doc(collection(db,'movements')),{productId:id,productCode:p.code,productModel:p.model,type:'out',qty:n,date:(()=>{ const now=new Date(); const pad=n=>String(n).padStart(2,'0'); return new Date(dateVal+'T'+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())); })(),user:currentUser.name,createdAt:serverTimestamp()});
+    await batch.commit();
+    closeModal(); toast(`−${n} unidades retiradas. Saldo restante: ${(p.qty||0)-n}`,'green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao registrar saída: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 
 window.confirmDel = function(id) {
   const p=products.find(x=>x.id===id); if(!p) return;
   openModal(`<div class="modal-title">🗑 Remover Produto</div><div class="modal-sub">Esta ação não pode ser desfeita.</div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
-      <div style="font-family:var(--mono);color:var(--accent);font-size:13px;margin-bottom:4px">${p.code}</div>
-      <div style="font-size:14px">${p.model}</div>
+      <div style="font-family:var(--mono);color:var(--accent);font-size:13px;margin-bottom:4px">${escapeHtml(p.code)}</div>
+      <div style="font-size:14px">${escapeHtml(p.model)}</div>
       <div style="color:var(--muted);font-size:12px;margin-top:4px">Quantidade atual: ${p.qty||0}</div>
     </div>
     <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-modal-confirm" style="background:var(--red)" onclick="doDelete('${id}')">Sim, Remover</button></div>`);
+    <button class="btn-modal-confirm" style="background:var(--red)" onclick="doDelete('${id}', this)">Sim, Remover</button></div>`);
 };
-window.doDelete = async function(id) {
+window.doDelete = async function(id, btn) {
+  const done = setBtnLoading(btn, 'Removendo...');
   setSyncStatus('syncing');
-  await deleteDoc(doc(db,'products',id));
-  closeModal(); toast('Produto removido.','red');
+  try {
+    await deleteDoc(doc(db,'products',id));
+    closeModal(); toast('Produto removido.','red');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao remover produto: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 
 // ── USUÁRIOS ─────────────────────────────────────────
@@ -1809,7 +1880,7 @@ window.openModalNovoUsuario = function() {
       </select>
     </div>
     <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-modal-confirm" onclick="confirmNovoUsuario()">Criar Usuário</button></div>`);
+    <button class="btn-modal-confirm" onclick="confirmNovoUsuario(this)">Criar Usuário</button></div>`);
 };
 
 window.setAvatarByGenero = function() {
@@ -1852,7 +1923,7 @@ window.previewAvatar = function(event) {
   };
   reader.readAsDataURL(file);
 };
-window.confirmNovoUsuario = async function() {
+window.confirmNovoUsuario = async function(btn) {
   const name=document.getElementById('m-name').value.trim(), username=document.getElementById('m-user').value.trim(),
         password=document.getElementById('m-pw').value, funcao=document.getElementById('m-funcao').value.trim(),
         role=document.getElementById('m-role').value;
@@ -1862,8 +1933,18 @@ window.confirmNovoUsuario = async function() {
   const avatar = window._avatarB64 || '';
   const genero = document.getElementById('m-genero')?.value || '';
   window._avatarB64 = null;
-  await addDoc(collection(db,'users'),{name,username,password,funcao,role,avatar,genero,createdAt:serverTimestamp()});
-  closeModal(); toast('Usuário criado com sucesso!','green');
+  const done = setBtnLoading(btn, 'Criando...');
+  setSyncStatus('syncing');
+  try {
+    await addDoc(collection(db,'users'),{name,username,password,funcao,role,avatar,genero,createdAt:serverTimestamp()});
+    setSyncStatus('ok');
+    closeModal(); toast('Usuário criado com sucesso!','green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao criar usuário: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 window.editarAvatar = function(id) {
   const u = users.find(x => x.id === id);
@@ -1871,10 +1952,10 @@ window.editarAvatar = function(id) {
   window._editAvatarId = id;
   openModal(`
     <div class="modal-title">📷 Foto de Perfil</div>
-    <div class="modal-sub">${u.name}</div>
+    <div class="modal-sub">${escapeHtml(u.name)}</div>
     <div class="avatar-upload-wrap" style="margin:20px 0">
       <div class="avatar-preview" onclick="document.getElementById('avatar-edit-input').click()" id="avatar-edit-preview" style="width:110px;height:110px;font-size:36px">
-        ${u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : `<span>${(u.name||'?')[0].toUpperCase()}</span>`}
+        ${u.avatar ? `<img src="${escapeAttr(u.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : `<span>${escapeHtml((u.name||'?')[0].toUpperCase())}</span>`}
         <div class="avatar-overlay">📷</div>
       </div>
       <div class="avatar-hint">Clique na foto para alterar</div>
@@ -1882,8 +1963,8 @@ window.editarAvatar = function(id) {
     </div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      ${u.avatar ? `<button class="btn-modal-cancel" style="color:var(--red);border-color:rgba(247,96,79,.4)" onclick="removerAvatar('${id}')">🗑 Remover Foto</button>` : ''}
-      <button class="btn-modal-confirm" onclick="salvarAvatar('${id}')">💾 Salvar Foto</button>
+      ${u.avatar ? `<button class="btn-modal-cancel" style="color:var(--red);border-color:rgba(247,96,79,.4)" onclick="removerAvatar('${id}', this)">🗑 Remover Foto</button>` : ''}
+      <button class="btn-modal-confirm" onclick="salvarAvatar('${id}', this)">💾 Salvar Foto</button>
     </div>`);
 };
 
@@ -1913,41 +1994,68 @@ window.previewAvatarEdit = function(event) {
   reader.readAsDataURL(file);
 };
 
-window.salvarAvatar = async function(id) {
+window.salvarAvatar = async function(id, btn) {
   const b64 = window._editAvatarB64;
   if (!b64) { toast('Selecione uma foto primeiro!', 'red'); return; }
+  const done = setBtnLoading(btn, 'Salvando...');
   setSyncStatus('syncing');
-  await updateDoc(doc(db,'users',id), { avatar: b64 });
-  window._editAvatarB64 = null;
-  // Update current user topbar if it's the logged user
-  const uUpdated = users.find(x => x.id === id);
-  if (uUpdated && currentUser && currentUser.id === id) {
-    currentUser.avatar = b64;
-    const avatarEl = document.getElementById('user-avatar');
-    if (avatarEl) avatarEl.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-  }
-  closeModal();
-  toast('Foto de perfil atualizada!', 'green');
-};
-
-window.removerAvatar = async function(id) {
-  setSyncStatus('syncing');
-  await updateDoc(doc(db,'users',id), { avatar: '' });
-  if (currentUser && currentUser.id === id) {
-    currentUser.avatar = '';
-    const avatarEl = document.getElementById('user-avatar');
-    if (avatarEl) {
-      avatarEl.innerHTML = '';
-      avatarEl.textContent = currentUser.name[0].toUpperCase();
+  try {
+    await updateDoc(doc(db,'users',id), { avatar: b64 });
+    window._editAvatarB64 = null;
+    // Update current user topbar if it's the logged user
+    const uUpdated = users.find(x => x.id === id);
+    if (uUpdated && currentUser && currentUser.id === id) {
+      currentUser.avatar = b64;
+      const avatarEl = document.getElementById('user-avatar');
+      if (avatarEl) avatarEl.innerHTML = `<img src="${escapeAttr(b64)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
     }
+    setSyncStatus('ok');
+    closeModal();
+    toast('Foto de perfil atualizada!', 'green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao salvar foto: ' + e.message, 'red');
+  } finally {
+    done();
   }
-  closeModal();
-  toast('Foto removida.', 'red');
 };
 
-window.deleteUser = async function(id) {
-  await deleteDoc(doc(db,'users',id));
-  toast('Usuário removido.','red');
+window.removerAvatar = async function(id, btn) {
+  const done = setBtnLoading(btn, 'Removendo...');
+  setSyncStatus('syncing');
+  try {
+    await updateDoc(doc(db,'users',id), { avatar: '' });
+    if (currentUser && currentUser.id === id) {
+      currentUser.avatar = '';
+      const avatarEl = document.getElementById('user-avatar');
+      if (avatarEl) {
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = currentUser.name[0].toUpperCase();
+      }
+    }
+    setSyncStatus('ok');
+    closeModal();
+    toast('Foto removida.', 'red');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao remover foto: ' + e.message, 'red');
+  } finally {
+    done();
+  }
+};
+
+window.deleteUser = async function(id, btn) {
+  const done = setBtnLoading(btn, '...');
+  setSyncStatus('syncing');
+  try {
+    await deleteDoc(doc(db,'users',id));
+    setSyncStatus('ok');
+    toast('Usuário removido.','red');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao remover usuário: ' + e.message, 'red');
+    done();
+  }
 };
 
 // ── IMPORTAR DADOS INICIAIS ──────────────────────────
@@ -1957,20 +2065,27 @@ window.importInitialData = async function() {
   btn.disabled=true; btn.textContent='Importando...';
   document.getElementById('import-progress').style.display='block';
   const total=INITIAL_PRODUCTS.length; let done=0;
-  for(let i=0;i<total;i+=400) {
-    const batch=writeBatch(db);
-    INITIAL_PRODUCTS.slice(i,i+400).forEach(([code,familia,modelo,tensao,qty])=>{
-      const model = [familia, modelo, tensao].filter(Boolean).join(' ');
-      batch.set(doc(collection(db,'products')),{code,familia,modelo,tensao,model,qty,createdAt:serverTimestamp()});
-    });
-    await batch.commit();
-    done=Math.min(i+400,total);
-    document.getElementById('progress-bar').style.width=(done/total*100)+'%';
-    document.getElementById('progress-text').textContent=`${done} / ${total} produtos importados...`;
+  try {
+    for(let i=0;i<total;i+=400) {
+      const batch=writeBatch(db);
+      INITIAL_PRODUCTS.slice(i,i+400).forEach(([code,familia,modelo,tensao,qty])=>{
+        const model = [familia, modelo, tensao].filter(Boolean).join(' ');
+        batch.set(doc(collection(db,'products')),{code,familia,modelo,tensao,model,qty,createdAt:serverTimestamp()});
+      });
+      await batch.commit();
+      done=Math.min(i+400,total);
+      document.getElementById('progress-bar').style.width=(done/total*100)+'%';
+      document.getElementById('progress-text').textContent=`${done} / ${total} produtos importados...`;
+    }
+    toast(total+' produtos importados!','green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast(`Erro durante a importação (${done}/${total} concluídos): ` + e.message, 'red');
+  } finally {
+    document.getElementById('import-progress').style.display='none';
+    btn.disabled=false;
+    btn.textContent='Importar Produtos da Planilha';
   }
-  toast(total+' produtos importados!','green');
-  document.getElementById('import-progress').style.display='none';
-  btn.disabled=false;
 };
 
 // ── APAGAR TODOS OS PRODUTOS (ADMIN) ─────────────────
@@ -2018,7 +2133,7 @@ function gerarRelatorio() {
   const data = getFiltered(q);
   const now = new Date();
   const dataHora = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-  const filtroLabel = q ? `Filtro aplicado: "${q}"` : 'Todos os produtos';
+  const filtroLabel = q ? `Filtro aplicado: "${escapeHtml(q)}"` : 'Todos os produtos';
   const totalQty = data.reduce((a,b)=>a+(b.qty||0),0);
   const zerados = data.filter(p=>(p.qty||0)===0).length;
 
@@ -2028,10 +2143,10 @@ function gerarRelatorio() {
     const bg  = qty === 0 ? '#fff0f0' : qty <= 2 ? '#fffbe6' : '#f0fff6';
     return `<tr>
       <td style="color:#888;text-align:center">${i+1}</td>
-      <td style="font-family:monospace;color:#1a5cb5;font-weight:600">${p.code}</td>
-      <td>${p.familia||p.model||''}</td>
-      <td>${p.modelo||''}</td>
-      <td style="color:#555;font-size:11px">${p.tensao||''}</td>
+      <td style="font-family:monospace;color:#1a5cb5;font-weight:600">${escapeHtml(p.code)}</td>
+      <td>${escapeHtml(p.familia||p.model||'')}</td>
+      <td>${escapeHtml(p.modelo||'')}</td>
+      <td style="color:#555;font-size:11px">${escapeHtml(p.tensao||'')}</td>
       <td style="text-align:center;font-weight:700;color:${cor};background:${bg};border-radius:4px">${qty}</td>
     </tr>`;
   }).join('');
@@ -2184,10 +2299,10 @@ function renderHistorico() {
         return `<tr>
           <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${dateStr}</td>
           <td>${badge}</td>
-          <td><span class="code-cell">${m.productCode||'—'}</span></td>
-          <td style="font-size:13px">${m.productModel||'—'}</td>
+          <td><span class="code-cell">${escapeHtml(m.productCode||'—')}</span></td>
+          <td style="font-size:13px">${escapeHtml(m.productModel||'—')}</td>
           <td style="font-family:var(--mono);font-weight:700;color:${qtyColor}">${qtyStr}</td>
-          <td style="color:var(--muted);font-size:12px">${m.user||'—'}</td>
+          <td style="color:var(--muted);font-size:12px">${escapeHtml(m.user||'—')}</td>
         </tr>`;
       }).join('')
     : '<tr><td colspan="6" class="hist-empty">Nenhuma movimentação encontrada.</td></tr>';
@@ -2199,6 +2314,60 @@ function renderHistorico() {
 // ── REFUGOS ──────────────────────────────────────────
 let refugos = [];
 let caixaCount = 0, prodCounter = 0;
+let refugoEdicaoOriginalCaixas = null; // snapshot das caixas antes de editar, usado para calcular a diferença de estoque
+
+// Soma as quantidades de todos os produtos de um refugo, agrupadas por código
+function aggregateRefugoQtyByCode(caixas) {
+  const map = {};
+  (caixas||[]).forEach(c => {
+    (c.produtos||[]).forEach(p => {
+      const code = (p.codigo||'').trim();
+      if (!code) return;
+      const qty = parseInt(p.qty) || 0;
+      map[code] = (map[code]||0) + qty;
+    });
+  });
+  return map;
+}
+
+// Monta a data da movimentação combinando a data escolhida com o horário atual (mesmo padrão usado em Entrada/Saída)
+function buildMovementDate(dateStr) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  if (!dateStr) return now;
+  return new Date(dateStr + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()));
+}
+
+// Aplica ao estoque um mapa de ajustes { codigo: delta } dentro do batch informado.
+// delta > 0  → mais unidades foram sucateadas agora (desconta do estoque, registra Saída)
+// delta < 0  → unidades voltaram a ficar disponíveis (devolve ao estoque, registra Entrada)
+// Retorna a lista de códigos que não foram encontrados no cadastro de produtos (não puderam ser ajustados).
+function aplicarAjusteEstoqueRefugo(batch, deltaMap, dateForMovement) {
+  const naoEncontrados = [];
+  Object.entries(deltaMap).forEach(([codigo, delta]) => {
+    if (!delta) return;
+    const prod = products.find(p => (p.code||'').trim().toLowerCase() === codigo.toLowerCase());
+    if (!prod) { naoEncontrados.push(codigo); return; }
+    const novaQty = (prod.qty||0) - delta;
+    batch.update(doc(db,'products', prod.id), { qty: novaQty });
+    batch.set(doc(collection(db,'movements')), {
+      productId: prod.id, productCode: prod.code, productModel: prod.model,
+      type: delta > 0 ? 'out' : 'in',
+      qty: Math.abs(delta),
+      date: dateForMovement,
+      user: currentUser ? currentUser.name : '—',
+      createdAt: serverTimestamp(),
+      origem: 'refugo'
+    });
+  });
+  return naoEncontrados;
+}
+
+// Monta o toast de aviso para códigos de refugo que não existem no cadastro de produtos
+function avisoCodigosNaoEncontrados(naoEncontrados) {
+  if (!naoEncontrados.length) return;
+  toast(`Estoque não ajustado para ${naoEncontrados.length} código(s) não cadastrado(s): ${naoEncontrados.join(', ')}`, 'yellow');
+}
 
 // Load all refugos from Firestore
 async function loadRefugos() {
@@ -2247,9 +2416,11 @@ function getFilteredRefugos() {
 }
 
 function highlightMatch(text, q) {
-  if (!q || !text) return text || '—';
-  const regex = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-  return text.replace(regex, '<mark style="background:rgba(79,142,247,.3);color:var(--text);border-radius:3px;padding:0 2px">$1</mark>');
+  const safeText = escapeHtml(text) || '—';
+  if (!q || !text) return safeText;
+  const safeQ = escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp('(' + safeQ + ')', 'gi');
+  return safeText.replace(regex, '<mark style="background:rgba(79,142,247,.3);color:var(--text);border-radius:3px;padding:0 2px">$1</mark>');
 }
 
 function renderRefugos() {
@@ -2298,17 +2469,17 @@ function renderRefugos() {
           (p.tensao||'').toLowerCase().includes(rowQ)
         );
         return `<tr style="${matchRow ? 'background:rgba(79,142,247,.08);' : ''}">
-          <td style="text-align:center;font-family:var(--mono);font-weight:700">${p.qty || 1}</td>
+          <td style="text-align:center;font-family:var(--mono);font-weight:700">${escapeHtml(p.qty || 1)}</td>
           <td><span class="code-cell">${highlightMatch(p.codigo, rowQ)}</span></td>
           <td>${highlightMatch(p.modelo, rowQ)}</td>
-          <td><span class="tensao-badge">${p.tensao || '—'}</span></td>
-          <td>${p.obs ? '<span class="obs-badge">' + p.obs + '</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+          <td><span class="tensao-badge">${escapeHtml(p.tensao || '—')}</span></td>
+          <td>${p.obs ? '<span class="obs-badge">' + escapeHtml(p.obs) + '</span>' : '<span style="color:var(--muted)">—</span>'}</td>
         </tr>`;
       }).join('');
       return `
         <div class="caixa-section">
           <div class="caixa-header" onclick="toggleCaixa('caixa-body-${idx}-${ci}', this)">
-            <div class="caixa-title">📦 ${r.id ? `<span class="caixa-nome-editable" contenteditable="true" spellcheck="false" title="Clique para renomear a caixa" onclick="event.stopPropagation()" onfocus="event.stopPropagation();this.style.borderBottomColor='var(--accent)'" onblur="this.style.borderBottomColor='transparent';renomearCaixa(this,'${r.id}',${ci})" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="outline:none;border-bottom:1px dashed transparent;cursor:text;padding:0 2px;border-radius:3px;transition:border-color .15s">${c.nome}</span>` : c.nome}${c.reserva ? '<span style="font-size:11px;font-weight:600;color:var(--yellow);background:rgba(247,195,79,.12);border:1px solid rgba(247,195,79,.3);border-radius:5px;padding:2px 8px;margin-left:10px;font-family:var(--mono)">🔖 ' + c.reserva + '</span>' : ''}</div>
+            <div class="caixa-title">📦 ${r.id ? `<span class="caixa-nome-editable" contenteditable="true" spellcheck="false" title="Clique para renomear a caixa" onclick="event.stopPropagation()" onfocus="event.stopPropagation();this.style.borderBottomColor='var(--accent)'" onblur="this.style.borderBottomColor='transparent';renomearCaixa(this,'${r.id}',${ci})" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="outline:none;border-bottom:1px dashed transparent;cursor:text;padding:0 2px;border-radius:3px;transition:border-color .15s">${escapeHtml(c.nome)}</span>` : escapeHtml(c.nome)}${c.reserva ? '<span style="font-size:11px;font-weight:600;color:var(--yellow);background:rgba(247,195,79,.12);border:1px solid rgba(247,195,79,.3);border-radius:5px;padding:2px 8px;margin-left:10px;font-family:var(--mono)">🔖 ' + escapeHtml(c.reserva) + '</span>' : ''}</div>
             <div style="display:flex;align-items:center;gap:10px">
               <div class="caixa-count">${(c.produtos||[]).reduce((a,p)=>a+(parseInt(p.qty)||0),0)} unidades</div>
               <button class="btn-action btn-edit" style="font-size:11.5px;padding:4px 10px" onclick="event.stopPropagation();gerarPDFCaixa(${idx}, ${ci})">🖨️ PDF Caixa</button>
@@ -2327,9 +2498,9 @@ function renderRefugos() {
       <div class="refugo-card">
         <div class="refugo-card-header" onclick="toggleRefugo('rcard-${idx}')">
           <div>
-            <div class="refugo-card-title">📅 Refugo — ${data}</div>
+            <div class="refugo-card-title">📅 Refugo — ${escapeHtml(data)}</div>
             <div class="refugo-card-meta">
-              ${r.dataMov ? `<span style="color:var(--accent);font-size:12.1px;font-weight:600">📤 Movimentado em: ${r.dataMov}</span>${r.obs ? ' &nbsp;·&nbsp; ' + r.obs : ''}` : (r.obs || '<span style="color:var(--muted);font-size:12px">Sem data de movimentação registrada</span>')}
+              ${r.dataMov ? `<span style="color:var(--accent);font-size:12.1px;font-weight:600">📤 Movimentado em: ${escapeHtml(r.dataMov)}</span>${r.obs ? ' &nbsp;·&nbsp; ' + escapeHtml(r.obs) : ''}` : (r.obs ? escapeHtml(r.obs) : '<span style="color:var(--muted);font-size:12px">Sem data de movimentação registrada</span>')}
             </div>
           </div>
           <div class="refugo-card-badges">
@@ -2390,16 +2561,36 @@ window.toggleRefugo = function(id) {
 };
 
 window.deleteRefugo = async function(id) {
-  if (!confirm('Remover este refugo? Esta ação não pode ser desfeita.')) return;
-  await deleteDoc(doc(db, 'refugos', id));
-  toast('Refugo removido.', 'red');
-  loadRefugos();
+  if (!confirm('Remover este refugo? Esta ação não pode ser desfeita. As quantidades sucateadas voltarão ao estoque.')) return;
+  const r = refugos.find(x => x.id === id);
+  setSyncStatus('syncing');
+  try {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'refugos', id));
+    let naoEncontrados = [];
+    if (r) {
+      // Estorna ao estoque tudo que havia sido descontado por este refugo
+      const consumido = aggregateRefugoQtyByCode(r.caixas || []);
+      const deltaMap = {};
+      Object.entries(consumido).forEach(([codigo, qty]) => { deltaMap[codigo] = -qty; });
+      naoEncontrados = aplicarAjusteEstoqueRefugo(batch, deltaMap, new Date());
+    }
+    await batch.commit();
+    setSyncStatus('ok');
+    toast('Refugo removido. Estoque estornado.', 'red');
+    avisoCodigosNaoEncontrados(naoEncontrados);
+    loadRefugos();
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao remover refugo: ' + e.message, 'red');
+  }
 };
 
 window.editarRefugo = async function(id) {
   const r = refugos.find(x => x.id === id);
   if (!r) return;
 
+  refugoEdicaoOriginalCaixas = r.caixas || []; // snapshot usado depois para calcular a diferença de estoque
   caixaCount = 0; prodCounter = 0;
   const modal = document.getElementById('modal');
   modal.classList.add('modal-wide-xl');
@@ -2411,9 +2602,9 @@ window.editarRefugo = async function(id) {
     <div class="refugo-modal-section">
       <div class="refugo-modal-section-title">Informações do Refugo</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:4px">
-        <div class="form-group"><label>Data do Refugo</label><input id="ref-data" type="date" value="${r.data}" /></div>
-        <div class="form-group"><label>Data da Movimentação</label><input id="ref-data-mov" type="date" value="${r.dataMov||''}" /></div>
-        <div class="form-group"><label>Observação (opcional)</label><input id="ref-obs" value="${r.obs||''}" placeholder="ex: Refugo mensal, devolução..." /></div>
+        <div class="form-group"><label>Data do Refugo</label><input id="ref-data" type="date" value="${escapeAttr(r.data)}" /></div>
+        <div class="form-group"><label>Data da Movimentação</label><input id="ref-data-mov" type="date" value="${escapeAttr(r.dataMov||'')}" /></div>
+        <div class="form-group"><label>Observação (opcional)</label><input id="ref-obs" value="${escapeAttr(r.obs||'')}" placeholder="ex: Refugo mensal, devolução..." /></div>
       </div>
     </div>
 
@@ -2428,7 +2619,7 @@ window.editarRefugo = async function(id) {
 
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" onclick="salvarEdicaoRefugo('${id}')">💾 Salvar Alterações</button>
+      <button class="btn-modal-confirm" onclick="salvarEdicaoRefugo('${id}', this)">💾 Salvar Alterações</button>
     </div>`);
 
   // Populate existing caixas
@@ -2465,7 +2656,7 @@ window.editarRefugo = async function(id) {
   }
 };
 
-window.salvarEdicaoRefugo = async function(id) {
+window.salvarEdicaoRefugo = async function(id, btn) {
   const data = document.getElementById('ref-data').value;
   const obs  = document.getElementById('ref-obs').value.trim();
   if (!data) { toast('Informe a data do refugo!', 'red'); return; }
@@ -2500,12 +2691,35 @@ window.salvarEdicaoRefugo = async function(id) {
 
   if (caixas.length === 0) { toast('Adicione pelo menos um produto!', 'red'); return; }
 
+  const done = setBtnLoading(btn, 'Salvando...');
   setSyncStatus('syncing');
-  const dataMov = document.getElementById('ref-data-mov').value || '';
-  await updateDoc(doc(db, 'refugos', id), { data, dataMov, obs, caixas, totalItens });
-  closeModal();
-  toast('Refugo atualizado com sucesso!', 'green');
-  loadRefugos();
+  try {
+    const dataMov = document.getElementById('ref-data-mov').value || '';
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'refugos', id), { data, dataMov, obs, caixas, totalItens });
+    // Ajusta o estoque apenas pela DIFERENÇA entre as quantidades antigas e as novas
+    // (evita descontar de novo o que já havia sido descontado na criação/última edição)
+    const oldMap = aggregateRefugoQtyByCode(refugoEdicaoOriginalCaixas || []);
+    const newMap = aggregateRefugoQtyByCode(caixas);
+    const deltaMap = {};
+    new Set([...Object.keys(oldMap), ...Object.keys(newMap)]).forEach(codigo => {
+      const delta = (newMap[codigo]||0) - (oldMap[codigo]||0);
+      if (delta) deltaMap[codigo] = delta;
+    });
+    const naoEncontrados = aplicarAjusteEstoqueRefugo(batch, deltaMap, new Date());
+    await batch.commit();
+    refugoEdicaoOriginalCaixas = null;
+    setSyncStatus('ok');
+    closeModal();
+    toast('Refugo atualizado com sucesso! Estoque ajustado.', 'green');
+    avisoCodigosNaoEncontrados(naoEncontrados);
+    loadRefugos();
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao atualizar refugo: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 
 window.gerarRelatorioRefugo = function(idx) {
@@ -2522,11 +2736,11 @@ window.gerarRelatorioRefugo = function(idx) {
     const rows = (c.produtos||[]).map((p,i) => `
       <tr>
         <td style="text-align:center;color:#888">${i+1}</td>
-        <td style="text-align:center;font-weight:700">${p.qty||1}</td>
-        <td style="font-family:monospace;color:#1a5cb5;font-weight:600">${p.codigo||'—'}</td>
-        <td>${p.modelo||'—'}</td>
-        <td style="text-align:center">${p.tensao||'—'}</td>
-        <td style="color:#888">${p.obs||'—'}</td>
+        <td style="text-align:center;font-weight:700">${escapeHtml(p.qty||1)}</td>
+        <td style="font-family:monospace;color:#1a5cb5;font-weight:600">${escapeHtml(p.codigo||'—')}</td>
+        <td>${escapeHtml(p.modelo||'—')}</td>
+        <td style="text-align:center">${escapeHtml(p.tensao||'—')}</td>
+        <td style="color:#888">${escapeHtml(p.obs||'—')}</td>
       </tr>`).join('');
     const isBox = c.nome !== 'SOLTOS' && !c.nome.startsWith('SOLT');
     const headerColor = isBox ? '#1a4fa3' : '#8a6200';
@@ -2534,7 +2748,7 @@ window.gerarRelatorioRefugo = function(idx) {
     return `
       <div style="margin-bottom:24px;page-break-inside:avoid">
         <div style="background:${headerBg};border-left:4px solid ${headerColor};padding:10px 14px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:800;color:${headerColor};font-size:15px">📦 ${c.nome}</span>
+          <span style="font-weight:800;color:${headerColor};font-size:15px">📦 ${escapeHtml(c.nome)}</span>
           <span style="font-size:12px;color:#666">${subtotal} unidade${subtotal!==1?'s':''}</span>
         </div>
         <table style="width:100%;border-collapse:collapse;border:1px solid #e0e0e0;border-top:none">
@@ -2557,7 +2771,7 @@ window.gerarRelatorioRefugo = function(idx) {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Refugo — ${r.data}</title>
+  <title>Refugo — ${escapeHtml(r.data)}</title>
   <style>
     * { box-sizing:border-box; margin:0; padding:0; }
     body { font-family:'Calibri','Segoe UI',Arial,sans-serif; color:#222; background:#fff; padding:32px; font-size:13px; }
@@ -2588,9 +2802,9 @@ window.gerarRelatorioRefugo = function(idx) {
       <div class="subtitle">Estoque Laboratório Qualidade — Divisão dos Importados</div>
     </div>
     <div class="header-right">
-      Data do Refugo: <strong>${r.data}</strong><br>
-      Data da Movimentação: <strong>${r.dataMov || 'Não registrada'}</strong><br>
-      Registrado por: <strong>${r.criadoPor||'—'}</strong><br>
+      Data do Refugo: <strong>${escapeHtml(r.data)}</strong><br>
+      Data da Movimentação: <strong>${escapeHtml(r.dataMov || 'Não registrada')}</strong><br>
+      Registrado por: <strong>${escapeHtml(r.criadoPor||'—')}</strong><br>
       Gerado em: ${dataHora}
     </div>
   </div>
@@ -2606,13 +2820,13 @@ window.gerarRelatorioRefugo = function(idx) {
     </div>
   </div>
 
-  ${r.obs ? `<div class="obs-box">📝 <strong>Observação:</strong> ${r.obs}</div>` : ''}
+  ${r.obs ? `<div class="obs-box">📝 <strong>Observação:</strong> ${escapeHtml(r.obs)}</div>` : ''}
 
   ${caixasHtml}
 
   <div class="footer">
     <span>ELQ — Estoque Laboratório Qualidade / Divisão dos Importados</span>
-    <span>Refugo de ${r.data} — Gerado em ${dataHora}</span>
+    <span>Refugo de ${escapeHtml(r.data)} — Gerado em ${dataHora}</span>
   </div>
 </body>
 </html>`;
@@ -2636,11 +2850,11 @@ window.gerarPDFCaixa = function(refugoIdx, caixaIdx) {
   const rows = (c.produtos||[]).map((p,i) => `
     <tr>
       <td style="text-align:center;color:#888;padding:9px 10px;border-bottom:1px solid #ebebeb">${i+1}</td>
-      <td style="text-align:center;font-weight:800;font-size:15px;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.qty||1}</td>
-      <td style="font-family:monospace;color:#1a4fa3;font-weight:700;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.codigo||'—'}</td>
-      <td style="padding:9px 10px;border-bottom:1px solid #ebebeb">${p.modelo||'—'}</td>
-      <td style="text-align:center;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.tensao||'—'}</td>
-      <td style="color:#888;padding:9px 10px;border-bottom:1px solid #ebebeb">${p.obs||'—'}</td>
+      <td style="text-align:center;font-weight:800;font-size:15px;padding:9px 10px;border-bottom:1px solid #ebebeb">${escapeHtml(p.qty||1)}</td>
+      <td style="font-family:monospace;color:#1a4fa3;font-weight:700;padding:9px 10px;border-bottom:1px solid #ebebeb">${escapeHtml(p.codigo||'—')}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid #ebebeb">${escapeHtml(p.modelo||'—')}</td>
+      <td style="text-align:center;padding:9px 10px;border-bottom:1px solid #ebebeb">${escapeHtml(p.tensao||'—')}</td>
+      <td style="color:#888;padding:9px 10px;border-bottom:1px solid #ebebeb">${escapeHtml(p.obs||'—')}</td>
     </tr>`).join('');
 
   const accentColor = isBox ? '#1a4fa3' : '#8a6200';
@@ -2651,7 +2865,7 @@ window.gerarPDFCaixa = function(refugoIdx, caixaIdx) {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>${c.nome} — Refugo ${r.data}</title>
+  <title>${escapeHtml(c.nome)} — Refugo ${escapeHtml(r.data)}</title>
   <style>
     * { box-sizing:border-box; margin:0; padding:0; }
     body { font-family:'Calibri','Segoe UI',Arial,sans-serif; color:#222; background:#fff; padding:28px; font-size:13px; }
@@ -2706,11 +2920,11 @@ window.gerarPDFCaixa = function(refugoIdx, caixaIdx) {
 
   <!-- IDENTIFICAÇÃO DA CAIXA -->
   <div class="box-id">
-    <div class="box-name">${icon} ${c.nome}</div>
+    <div class="box-name">${icon} ${escapeHtml(c.nome)}</div>
     <div class="box-meta">
-      Data do Refugo: <strong>${r.data}</strong><br>
+      Data do Refugo: <strong>${escapeHtml(r.data)}</strong><br>
       Itens nesta caixa: <strong>${subtotal} unidade${subtotal!==1?'s':''}</strong><br>
-      Registrado por: <strong>${r.criadoPor||'—'}</strong>
+      Registrado por: <strong>${escapeHtml(r.criadoPor||'—')}</strong>
     </div>
   </div>
 
@@ -2740,7 +2954,7 @@ window.gerarPDFCaixa = function(refugoIdx, caixaIdx) {
   </table>
 
   <div class="footer">
-    <span>ELQ — ${c.nome} / Refugo ${r.data}</span>
+    <span>ELQ — ${escapeHtml(c.nome)} / Refugo ${escapeHtml(r.data)}</span>
     <span>Gerado em ${dataHora}</span>
   </div>
 </body>
@@ -2781,7 +2995,7 @@ window.openCriarRefugo = function() {
 
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-modal-confirm" onclick="salvarRefugo()">💾 Salvar Refugo</button>
+      <button class="btn-modal-confirm" onclick="salvarRefugo(this)">💾 Salvar Refugo</button>
     </div>`);
   addCaixa(); // start with 1 caixa
 };
@@ -2923,12 +3137,12 @@ function setupCodigoAutocomplete(codId, modId, tenId) {
       const modelo  = p.modelo  || '';
       const tensao  = p.tensao  || '';
       return `<div class="ac-item"
-        data-code="${p.code}"
-        data-modelo="${modelo}"
-        data-tensao="${tensao}">
-        <span style="color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:700">${p.code}</span>
-        <span style="color:var(--text);font-size:12px;margin-left:8px">${familia}${modelo ? ' — ' + modelo : ''}</span>
-        ${tensao ? `<span style="color:var(--accent2);font-size:11px;margin-left:6px;font-family:var(--mono)">${tensao}</span>` : ''}
+        data-code="${escapeAttr(p.code)}"
+        data-modelo="${escapeAttr(modelo)}"
+        data-tensao="${escapeAttr(tensao)}">
+        <span style="color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:700">${escapeHtml(p.code)}</span>
+        <span style="color:var(--text);font-size:12px;margin-left:8px">${escapeHtml(familia)}${modelo ? ' — ' + escapeHtml(modelo) : ''}</span>
+        ${tensao ? `<span style="color:var(--accent2);font-size:11px;margin-left:6px;font-family:var(--mono)">${escapeHtml(tensao)}</span>` : ''}
       </div>`;
     }).join('');
     drop.style.display = 'block';
@@ -2977,7 +3191,7 @@ function setupCodigoAutocomplete(codId, modId, tenId) {
   });
 }
 
-window.salvarRefugo = async function() {
+window.salvarRefugo = async function(btn) {
   const data = document.getElementById('ref-data').value;
   const obs  = document.getElementById('ref-obs').value.trim();
   if (!data) { toast('Informe a data do refugo!', 'red'); return; }
@@ -3012,22 +3226,39 @@ window.salvarRefugo = async function() {
 
   if (caixas.length === 0) { toast('Adicione pelo menos um produto!', 'red'); return; }
 
+  const done = setBtnLoading(btn, 'Salvando...');
   setSyncStatus('syncing');
-  const dataMov = document.getElementById('ref-data-mov').value || '';
-  await addDoc(collection(db, 'refugos'), {
-    data, dataMov, obs, caixas, totalItens, createdAt: serverTimestamp(),
-    criadoPor: currentUser ? currentUser.name : '—'
-  });
-  closeModal();
-  toast('Refugo salvo com sucesso!', 'green');
-  loadRefugos();
+  try {
+    const dataMov = document.getElementById('ref-data-mov').value || '';
+    const batch = writeBatch(db);
+    const refugoRef = doc(collection(db, 'refugos'));
+    batch.set(refugoRef, {
+      data, dataMov, obs, caixas, totalItens, createdAt: serverTimestamp(),
+      criadoPor: currentUser ? currentUser.name : '—'
+    });
+    // Desconta do estoque cada produto do refugo (agrupado por código) e registra a Saída correspondente
+    const deltaMap = aggregateRefugoQtyByCode(caixas);
+    const naoEncontrados = aplicarAjusteEstoqueRefugo(batch, deltaMap, buildMovementDate(data));
+    await batch.commit();
+    setSyncStatus('ok');
+    closeModal();
+    toast('Refugo salvo com sucesso! Estoque atualizado.', 'green');
+    avisoCodigosNaoEncontrados(naoEncontrados);
+    loadRefugos();
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao salvar refugo: ' + e.message, 'red');
+  } finally {
+    done();
+  }
 };
 
 // ── TOAST ────────────────────────────────────────────
 window.toast = function(msg, color='green') {
   const el=document.createElement('div'); el.className=`toast ${color}`;
-  el.innerHTML=`<span style="font-size:16px">${color==='green'?'✅':'❌'}</span> ${msg}`;
-  document.body.appendChild(el); setTimeout(()=>el.remove(),3500);
+  const icon = color==='green' ? '✅' : color==='yellow' ? '⚠️' : '❌';
+  el.innerHTML=`<span style="font-size:16px">${icon}</span> ${escapeHtml(msg)}`;
+  document.body.appendChild(el); setTimeout(()=>el.remove(), color==='yellow' ? 6000 : 3500);
 };
 
 // ── INIT ─────────────────────────────────────────────
@@ -3450,15 +3681,15 @@ window.irGerarPDF = function() {
       </div>
       <table class="data-table">
         <tr>
-          <td class="lbl">MODEL:</td><td colspan="3">${model}</td>
-          <td class="lbl">CODE:</td><td>${code}</td>
+          <td class="lbl">MODEL:</td><td colspan="3">${escapeHtml(model)}</td>
+          <td class="lbl">CODE:</td><td>${escapeHtml(code)}</td>
         </tr>
         <tr>
-          <td class="lbl">VOLTAGE:</td><td colspan="3">${voltage}</td>
-          <td class="lbl">%</td><td>${percent||'--'}</td>
+          <td class="lbl">VOLTAGE:</td><td colspan="3">${escapeHtml(voltage)}</td>
+          <td class="lbl">%</td><td>${escapeHtml(percent||'--')}</td>
         </tr>
         <tr>
-          <td class="lbl">SERIAL NUMBER:</td><td colspan="5">${serial}</td>
+          <td class="lbl">SERIAL NUMBER:</td><td colspan="5">${escapeHtml(serial)}</td>
         </tr>
         <tr>
           <td class="lbl">TEST START:</td><td>${fmt(testStart)}</td>
@@ -3466,7 +3697,7 @@ window.irGerarPDF = function() {
           <td class="lbl">REJECDATE:</td><td>${fmt(rejecdate)}</td>
         </tr>
       </table>
-      ${manufacturer ? `<div class="manufacturer-bar">${manufacturer}</div>` : ''}
+      ${manufacturer ? `<div class="manufacturer-bar">${escapeHtml(manufacturer)}</div>` : ''}
       <div class="assessment-box"><div class="assessment-bar">${assessLabel}</div></div>`;
   }
 
@@ -3475,8 +3706,8 @@ window.irGerarPDF = function() {
     if (!sections.length) return '<p style="color:#888;font-size:10pt;padding:8px">—</p>';
     return sections.map(s => `
       <div class="section">
-        <div class="section-title">${s.title}</div>
-        <div class="section-body">${(s.body||'').replace(/\n/g,'<br>')}</div>
+        <div class="section-title">${escapeHtml(s.title)}</div>
+        <div class="section-body">${escapeHtml(s.body||'').replace(/\n/g,'<br>')}</div>
       </div>`).join('');
   }
 
@@ -3502,7 +3733,7 @@ window.irGerarPDF = function() {
 
   // ── Página 3 — Defeitos + Fotos ─────────────────────────────────────────
   const defectRows = defects.length
-    ? defects.map(d=>`<tr><td>${d.defect}</td><td>${d.reason}</td><td>${d.local}</td></tr>`).join('')
+    ? defects.map(d=>`<tr><td>${escapeHtml(d.defect)}</td><td>${escapeHtml(d.reason)}</td><td>${escapeHtml(d.local)}</td></tr>`).join('')
     : '<tr><td colspan="3" style="text-align:center;color:#888;padding:8px">—</td></tr>';
 
   const fotosHtml = irFotos.length
@@ -3517,10 +3748,10 @@ window.irGerarPDF = function() {
     <div class="page">
       <div class="pg3-top-bar">Defect - Local of Defect - Photos</div>
       <div class="pg3-info">
-        <div class="pg3-info-cell"><span class="lbl">CODE:</span><span class="val">${code}</span></div>
-        <div class="pg3-info-cell"><span class="lbl">MODEL:</span><span class="val">${model}</span></div>
-        <div class="pg3-info-cell"><span class="lbl">VERSION:</span><span class="val">${version||'--'}</span></div>
-        <div class="pg3-info-cell"><span class="lbl">VOLTAGE:</span><span class="val">${voltage}</span></div>
+        <div class="pg3-info-cell"><span class="lbl">CODE:</span><span class="val">${escapeHtml(code)}</span></div>
+        <div class="pg3-info-cell"><span class="lbl">MODEL:</span><span class="val">${escapeHtml(model)}</span></div>
+        <div class="pg3-info-cell"><span class="lbl">VERSION:</span><span class="val">${escapeHtml(version||'--')}</span></div>
+        <div class="pg3-info-cell"><span class="lbl">VOLTAGE:</span><span class="val">${escapeHtml(voltage)}</span></div>
       </div>
       <div class="pg3-defect-section">
         <div class="pg3-defect-title">Defect - Location of Defect</div>
@@ -3537,7 +3768,7 @@ window.irGerarPDF = function() {
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
-    <title>Intervention Report — ${model}</title>
+    <title>Intervention Report — ${escapeHtml(model)}</title>
     <style>${baseStyle}</style>
   </head><body>
     ${pg1}${pg2}${pg3}
@@ -3650,12 +3881,12 @@ function renderIrSavedTable() {
         : '<span style="color:var(--muted)">—</span>';
     return `
       <tr>
-        <td>${r.model || '--'}${r.voltage ? ' — ' + r.voltage : ''}</td>
-        <td>${r.code ? `<span class="code-cell">${r.code}</span>` : '--'}</td>
-        <td>${r.serial || '--'}</td>
+        <td>${escapeHtml(r.model || '--')}${r.voltage ? ' — ' + escapeHtml(r.voltage) : ''}</td>
+        <td>${r.code ? `<span class="code-cell">${escapeHtml(r.code)}</span>` : '--'}</td>
+        <td>${escapeHtml(r.serial || '--')}</td>
         <td>${resultBadge}</td>
         <td>${savedAtStr}</td>
-        <td>${r.savedBy || '--'}</td>
+        <td>${escapeHtml(r.savedBy || '--')}</td>
         <td><div class="actions-cell">
           <button class="btn-action btn-edit" onclick="irCarregarRelatorio('${r.id}')">📂 Carregar</button>
           <button class="btn-action btn-in" onclick="irGerarPDFSalvo('${r.id}')">🖨️ PDF</button>
