@@ -538,6 +538,22 @@
   .menu-card.green::before { background: rgba(62,207,142,.07); }
   .menu-card.green:hover { box-shadow: 0 14px 40px rgba(62,207,142,.2); border-color: rgba(62,207,142,.65); }
   .menu-card.green .menu-card-label { color: var(--green); }
+  .menu-card.teal { border-color: rgba(45,212,191,.35); }
+  .menu-card.teal::before { background: rgba(45,212,191,.07); }
+  .menu-card.teal:hover { box-shadow: 0 14px 40px rgba(45,212,191,.2); border-color: rgba(45,212,191,.65); }
+  .menu-card.teal .menu-card-label { color: #2dd4bf; }
+
+  /* ── TESTES COM CARGA ── */
+  .status-badge { font-size:12.1px; font-weight:700; padding:4px 10px; border-radius:20px; font-family:var(--mono); white-space:nowrap; display:inline-block; }
+  .status-badge.emteste { background:rgba(247,195,79,.15); color:var(--yellow); }
+  .status-badge.concluido { background:rgba(62,207,142,.15); color:var(--green); }
+  .status-badge.reprovado { background:rgba(247,96,79,.15); color:var(--red); }
+  .ct-progress-cell { display:flex; align-items:center; gap:10px; min-width:160px; }
+  .ct-progress-track { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; min-width:80px; }
+  .ct-progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:4px; transition:width .3s; }
+  .ct-progress-fill.full { background:linear-gradient(90deg,var(--green),#2ab87a); }
+  .ct-progress-fill.over { background:linear-gradient(90deg,var(--red),#c0392b); }
+  .ct-progress-text { font-family:var(--mono); font-size:12.1px; font-weight:700; white-space:nowrap; }
 
   .btn-criar-refugo { padding:10px 20px; background:linear-gradient(135deg,var(--red),#c0392b); border:none; border-radius:10px; color:#fff; font-family:var(--font); font-size:14.3px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all .2s; }
   .btn-criar-refugo:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(247,96,79,.35); }
@@ -704,6 +720,10 @@
       <div class="menu-card green" onclick="switchTab('intervention')" id="card-intervention">
         <span class="menu-card-icon">📋</span>
         <span class="menu-card-label">Intervention Report</span>
+      </div>
+      <div class="menu-card teal" onclick="switchTab('cargatestes')" id="card-cargatestes">
+        <span class="menu-card-icon">🏋️</span>
+        <span class="menu-card-label">Registros de Testes com Carga</span>
       </div>
     </div>
   </div>
@@ -987,6 +1007,72 @@
     </div>
   </div>
 
+</div>
+
+<!-- PAGE: REGISTROS DE TESTES COM CARGA -->
+<div class="page" id="page-cargatestes">
+  <div class="page-header">
+    <div><div class="page-title">Registros de Testes com Carga <small>Cadastro, registro diário e acompanhamento de progresso</small></div></div>
+  </div>
+
+  <div class="ir-tabs">
+    <div class="ir-tab active" id="ct-tab-cadastro" onclick="ctSwitchView('cadastro')">📋 Cadastro</div>
+    <div class="ir-tab" id="ct-tab-registro" onclick="ctSwitchView('registro')">📝 Registro de Carga</div>
+    <div class="ir-tab" id="ct-tab-resumo" onclick="ctSwitchView('resumo')">📊 Resumo</div>
+  </div>
+
+  <!-- CADASTRO -->
+  <div id="ct-view-cadastro">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="ct-search-cadastro" placeholder="Buscar por código, modelo ou nº de série...">
+      </div>
+      <button class="btn-add" onclick="ctOpenNovoTeste()">+ Novo Teste</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Código</th><th>Modelo</th><th>Tensão</th><th>Nº de Série</th><th>Data Inicial</th><th>Data Final</th><th>Testes Previstos</th><th>Status</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="ct-tbody-cadastro"></tbody>
+      </table>
+      <div class="pagination" id="ct-pag-cadastro"></div>
+    </div>
+  </div>
+
+  <!-- REGISTRO DE CARGA -->
+  <div id="ct-view-registro" style="display:none">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="ct-search-registro" placeholder="Buscar por nº de série, modelo ou turno...">
+      </div>
+      <button class="btn-add" onclick="ctOpenNovoRegistro()">+ Novo Registro</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Data</th><th>Modelo</th><th>Nº de Série</th><th>Tensão</th><th>Turno</th><th>Ciclo do Dia</th><th>Carga</th><th>Observação</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="ct-tbody-registro"></tbody>
+      </table>
+      <div class="pagination" id="ct-pag-registro"></div>
+    </div>
+  </div>
+
+  <!-- RESUMO -->
+  <div id="ct-view-resumo" style="display:none">
+    <div class="stats-row" id="ct-resumo-stats"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Produto</th><th>Nº de Série</th><th>Tensão</th><th>Testes Previstos</th><th>Total de Ciclos</th><th>Progresso</th><th>Status</th>
+        </tr></thead>
+        <tbody id="ct-tbody-resumo"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- MODALS -->
@@ -1363,6 +1449,12 @@ const PER_PAGE = 25;
 let sortView   = { field: 'familia', dir: 'asc' };
 let sortManage = { field: 'familia', dir: 'asc' };
 
+// Testes com Carga
+let cargaTestes = [], cargaRegistros = [];
+let ctView = 'cadastro';
+let pagCtCadastro = 1, pagCtRegistro = 1;
+const PER_PAGE_CT = 20;
+
 // ── HELPERS ──────────────────────────────────────────
 function fmtDate(d) {
   const dt = d && d.toDate ? d.toDate() : new Date(d);
@@ -1448,6 +1540,16 @@ function startListeners() {
     users = snap.docs.map(d => ({id:d.id,...d.data()}));
     if (currentUser) renderUsers();
   });
+
+  onSnapshot(query(collection(db,'carga_testes'), orderBy('createdAt','desc')), snap => {
+    cargaTestes = snap.docs.map(d => ({id:d.id,...d.data()}));
+    if (currentUser) { ctRenderCadastro(); ctRenderResumo(); }
+  }, () => {});
+
+  onSnapshot(query(collection(db,'carga_registros'), orderBy('createdAt','desc')), snap => {
+    cargaRegistros = snap.docs.map(d => ({id:d.id,...d.data()}));
+    if (currentUser) { ctRenderRegistro(); ctRenderResumo(); }
+  }, () => {});
 }
 
 // ── AUTH ─────────────────────────────────────────────
@@ -1509,6 +1611,7 @@ window.switchTab = function(tab) {
   // Reforço defensivo: garante que a tabela exibida sempre reflita o estado mais atual de `products`
   if (tab === 'produtos') { renderStats(); renderView(); }
   if (tab === 'gerenciador') { renderManage(); }
+  if (tab === 'cargatestes') { ctSwitchView('cadastro'); }
 };
 
 // ── RENDER ───────────────────────────────────────────
@@ -2515,7 +2618,7 @@ function renderRefugos() {
           <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
             <button class="btn-pdf" style="font-size:13.2px" onclick="gerarRelatorioRefugo(${idx})">🖨️ Gerar PDF deste Refugo</button>
             <div style="display:flex;gap:8px">
-              ${r.id && currentUser && currentUser.role === 'admin' ? `<button class="btn-action btn-del" onclick="deleteRefugo('${r.id}')">🗑 Remover Refugo</button>` : ''}
+              ${r.id ? `<button class="btn-action btn-del" onclick="deleteRefugo('${r.id}')">🗑 Remover Refugo</button>` : ''}
             </div>
           </div>
         </div>
@@ -3253,6 +3356,378 @@ window.salvarRefugo = async function(btn) {
   }
 };
 
+// ── TESTES COM CARGA ─────────────────────────────────
+function ctStatusInfo(status) {
+  const map = {
+    'em-teste':  { label: 'Em Teste',  cls: 'emteste' },
+    'concluido': { label: 'Concluído', cls: 'concluido' },
+    'reprovado': { label: 'Reprovado', cls: 'reprovado' }
+  };
+  return map[status] || { label: status || '—', cls: 'emteste' };
+}
+
+window.ctSwitchView = function(view) {
+  ctView = view;
+  ['cadastro','registro','resumo'].forEach(v => {
+    const el = document.getElementById('ct-view-' + v);
+    if (el) el.style.display = v === view ? 'block' : 'none';
+    const tab = document.getElementById('ct-tab-' + v);
+    if (tab) tab.classList.toggle('active', v === view);
+  });
+  if (view === 'cadastro') ctRenderCadastro();
+  if (view === 'registro') ctRenderRegistro();
+  if (view === 'resumo')   ctRenderResumo();
+};
+
+function ctGetFilteredCadastro(q) {
+  const s = (q||'').toLowerCase();
+  return cargaTestes.filter(t =>
+    (t.codigo||'').toLowerCase().includes(s) ||
+    (t.modelo||'').toLowerCase().includes(s) ||
+    (t.numeroSerie||'').toLowerCase().includes(s) ||
+    (t.tensao||'').toLowerCase().includes(s)
+  );
+}
+
+function ctRenderCadastro() {
+  const searchEl = document.getElementById('ct-search-cadastro');
+  const q = searchEl ? searchEl.value : '';
+  const data = ctGetFilteredCadastro(q);
+  const pages = Math.max(1, Math.ceil(data.length / PER_PAGE_CT));
+  if (pagCtCadastro > pages) pagCtCadastro = pages;
+  const slice = data.slice((pagCtCadastro-1)*PER_PAGE_CT, pagCtCadastro*PER_PAGE_CT);
+  const tbody = document.getElementById('ct-tbody-cadastro');
+  if (!tbody) return;
+  tbody.innerHTML = slice.length ? slice.map(t => {
+    const st = ctStatusInfo(t.status);
+    return `<tr>
+      <td><span class="code-cell">${escapeHtml(t.codigo||'—')}</span></td>
+      <td>${escapeHtml(t.modelo||'')}</td>
+      <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${escapeHtml(t.tensao||'')}</span></td>
+      <td style="font-family:var(--mono)">${escapeHtml(t.numeroSerie||'')}</td>
+      <td>${escapeHtml(t.dataInicial||'—')}</td>
+      <td>${escapeHtml(t.dataFinal||'—')}</td>
+      <td style="text-align:center;font-family:var(--mono)">${t.testesPrevistos||0}</td>
+      <td><span class="status-badge ${st.cls}">${escapeHtml(st.label)}</span></td>
+      <td><div class="actions-cell">
+        <button class="btn-action btn-edit" onclick="ctOpenEditarTeste('${t.id}')">✏️ Editar</button>
+        <button class="btn-action btn-del" onclick="ctExcluirTeste('${t.id}', this)">🗑 Remover</button>
+      </div></td>
+    </tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="9">Nenhum teste cadastrado ainda.</td></tr>`;
+  renderPag('ct-pag-cadastro', pagCtCadastro, pages, data.length, n => { pagCtCadastro = n; ctRenderCadastro(); });
+}
+
+function ctGetFilteredRegistro(q) {
+  const s = (q||'').toLowerCase();
+  return cargaRegistros.filter(r =>
+    (r.numeroSerie||'').toLowerCase().includes(s) ||
+    (r.modelo||'').toLowerCase().includes(s) ||
+    (r.turno||'').toLowerCase().includes(s) ||
+    (r.carga||'').toLowerCase().includes(s) ||
+    (r.observacao||'').toLowerCase().includes(s)
+  );
+}
+
+function ctRenderRegistro() {
+  const searchEl = document.getElementById('ct-search-registro');
+  const q = searchEl ? searchEl.value : '';
+  const data = [...ctGetFilteredRegistro(q)].sort((a,b) => (b.data||'').localeCompare(a.data||''));
+  const pages = Math.max(1, Math.ceil(data.length / PER_PAGE_CT));
+  if (pagCtRegistro > pages) pagCtRegistro = pages;
+  const slice = data.slice((pagCtRegistro-1)*PER_PAGE_CT, pagCtRegistro*PER_PAGE_CT);
+  const tbody = document.getElementById('ct-tbody-registro');
+  if (!tbody) return;
+  tbody.innerHTML = slice.length ? slice.map(r => `<tr>
+      <td style="font-family:var(--mono);font-size:13px">${escapeHtml(r.data||'—')}</td>
+      <td>${escapeHtml(r.modelo||'')}</td>
+      <td style="font-family:var(--mono)">${escapeHtml(r.numeroSerie||'')}</td>
+      <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${escapeHtml(r.tensao||'')}</span></td>
+      <td>${escapeHtml(r.turno||'—')}</td>
+      <td style="text-align:center;font-family:var(--mono);font-weight:700">${r.cicloDia ?? 0}</td>
+      <td>${escapeHtml(r.carga||'—')}</td>
+      <td style="font-size:13px;color:var(--muted)">${escapeHtml(r.observacao||'—')}</td>
+      <td><div class="actions-cell">
+        <button class="btn-action btn-edit" onclick="ctOpenEditarRegistro('${r.id}')">✏️ Editar</button>
+        <button class="btn-action btn-del" onclick="ctExcluirRegistro('${r.id}', this)">🗑 Remover</button>
+      </div></td>
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="9">Nenhum registro de carga lançado ainda.</td></tr>`;
+  renderPag('ct-pag-registro', pagCtRegistro, pages, data.length, n => { pagCtRegistro = n; ctRenderRegistro(); });
+}
+
+function ctRenderResumo() {
+  const tbody = document.getElementById('ct-tbody-resumo');
+  const statsEl = document.getElementById('ct-resumo-stats');
+  if (!tbody || !statsEl) return;
+
+  let totalCiclosGeral = 0, countEmTeste = 0, countConcluido = 0;
+
+  const rows = cargaTestes.map(t => {
+    const totalCiclos = cargaRegistros
+      .filter(r => r.testeId === t.id)
+      .reduce((a, r) => a + (parseFloat(r.cicloDia) || 0), 0);
+    const previstos = parseFloat(t.testesPrevistos) || 0;
+    const progresso = previstos > 0 ? Math.round((totalCiclos / previstos) * 100) : 0;
+    totalCiclosGeral += totalCiclos;
+    if (t.status === 'em-teste')  countEmTeste++;
+    if (t.status === 'concluido') countConcluido++;
+    return { t, totalCiclos, previstos, progresso };
+  });
+
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Testes Cadastrados</div><div class="stat-value blue">${cargaTestes.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Em Teste</div><div class="stat-value yellow">${countEmTeste}</div></div>
+    <div class="stat-card"><div class="stat-label">Concluídos</div><div class="stat-value green">${countConcluido}</div></div>
+    <div class="stat-card"><div class="stat-label">Total de Ciclos Registrados</div><div class="stat-value blue">${totalCiclosGeral}</div></div>`;
+
+  tbody.innerHTML = rows.length ? rows.map(({t, totalCiclos, previstos, progresso}) => {
+    const st = ctStatusInfo(t.status);
+    const fillCls = progresso > 100 ? 'over' : progresso >= 100 ? 'full' : '';
+    const widthPct = Math.min(Math.max(progresso, 0), 100);
+    return `<tr>
+      <td><span class="code-cell">${escapeHtml(t.codigo||'—')}</span> ${escapeHtml(t.modelo||'')}</td>
+      <td style="font-family:var(--mono)">${escapeHtml(t.numeroSerie||'')}</td>
+      <td><span style="font-size:12px;color:var(--accent);font-family:var(--mono)">${escapeHtml(t.tensao||'')}</span></td>
+      <td style="text-align:center;font-family:var(--mono)">${previstos}</td>
+      <td style="text-align:center;font-family:var(--mono);font-weight:700">${totalCiclos}</td>
+      <td><div class="ct-progress-cell">
+        <div class="ct-progress-track"><div class="ct-progress-fill ${fillCls}" style="width:${widthPct}%"></div></div>
+        <span class="ct-progress-text">${progresso}%</span>
+      </div></td>
+      <td><span class="status-badge ${st.cls}">${escapeHtml(st.label)}</span></td>
+    </tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">Nenhum teste cadastrado ainda.</td></tr>`;
+}
+
+// ── CADASTRO: modais ──
+window.ctOpenNovoTeste = function() {
+  openModal(`<div class="modal-title">🏋️ Novo Teste de Carga</div><div class="modal-sub">Cadastre uma unidade para acompanhamento do teste de carga.</div>
+    <div class="form-group" style="position:relative"><label>Código</label><input id="ct-m-codigo" placeholder="ex: 70010-01" autocomplete="off"><div id="ct-m-codigo-drop" class="ac-drop"></div></div>
+    <div class="form-group"><label>Modelo</label><input id="ct-m-modelo" placeholder="preenchido automaticamente"></div>
+    <div class="form-group"><label>Tensão</label><input id="ct-m-tensao" placeholder="ex: 127V"></div>
+    <div class="form-group"><label>Nº de Série</label><input id="ct-m-serie" placeholder="ex: 00010298-25A00"></div>
+    <div class="form-group"><label>Data Inicial</label><input id="ct-m-datainicial" type="date"></div>
+    <div class="form-group"><label>Data Final</label><input id="ct-m-datafinal" type="date"></div>
+    <div class="form-group"><label>Testes Previstos (ciclos)</label><input id="ct-m-previstos" type="number" min="1" placeholder="ex: 44"></div>
+    <div class="form-group"><label>Status</label>
+      <select id="ct-m-status" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:15.4px;outline:none">
+        <option value="em-teste">Em Teste</option>
+        <option value="concluido">Concluído</option>
+        <option value="reprovado">Reprovado</option>
+      </select>
+    </div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="ctConfirmNovoTeste(this)">Cadastrar Teste</button></div>`);
+  setupCodigoAutocomplete('ct-m-codigo', 'ct-m-modelo', 'ct-m-tensao');
+};
+
+window.ctConfirmNovoTeste = async function(btn) {
+  const codigo   = document.getElementById('ct-m-codigo').value.trim();
+  const modelo   = document.getElementById('ct-m-modelo').value.trim();
+  const tensao   = document.getElementById('ct-m-tensao').value.trim();
+  const numeroSerie = document.getElementById('ct-m-serie').value.trim();
+  const dataInicial = document.getElementById('ct-m-datainicial').value;
+  const dataFinal    = document.getElementById('ct-m-datafinal').value;
+  const testesPrevistos = parseInt(document.getElementById('ct-m-previstos').value) || 0;
+  const status = document.getElementById('ct-m-status').value;
+  if (!numeroSerie) { toast('Informe o Nº de Série!', 'red'); return; }
+  if (!testesPrevistos) { toast('Informe a quantidade de Testes Previstos!', 'red'); return; }
+  const done = setBtnLoading(btn, 'Salvando...');
+  setSyncStatus('syncing');
+  try {
+    await addDoc(collection(db, 'carga_testes'), {
+      codigo, modelo, tensao, numeroSerie, dataInicial, dataFinal, testesPrevistos, status,
+      createdAt: serverTimestamp(), criadoPor: currentUser ? currentUser.name : '—'
+    });
+    setSyncStatus('ok');
+    closeModal();
+    toast('Teste de carga cadastrado!', 'green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao cadastrar teste: ' + e.message, 'red');
+  } finally {
+    done();
+  }
+};
+
+window.ctOpenEditarTeste = function(id) {
+  const t = cargaTestes.find(x => x.id === id); if (!t) return;
+  openModal(`<div class="modal-title">✏️ Editar Teste de Carga</div><div class="modal-sub"><span class="code-cell">${escapeHtml(t.codigo||'')}</span></div>
+    <div class="form-group" style="position:relative"><label>Código</label><input id="ct-m-codigo" value="${escapeAttr(t.codigo||'')}" autocomplete="off"><div id="ct-m-codigo-drop" class="ac-drop"></div></div>
+    <div class="form-group"><label>Modelo</label><input id="ct-m-modelo" value="${escapeAttr(t.modelo||'')}"></div>
+    <div class="form-group"><label>Tensão</label><input id="ct-m-tensao" value="${escapeAttr(t.tensao||'')}"></div>
+    <div class="form-group"><label>Nº de Série</label><input id="ct-m-serie" value="${escapeAttr(t.numeroSerie||'')}"></div>
+    <div class="form-group"><label>Data Inicial</label><input id="ct-m-datainicial" type="date" value="${escapeAttr(t.dataInicial||'')}"></div>
+    <div class="form-group"><label>Data Final</label><input id="ct-m-datafinal" type="date" value="${escapeAttr(t.dataFinal||'')}"></div>
+    <div class="form-group"><label>Testes Previstos (ciclos)</label><input id="ct-m-previstos" type="number" min="1" value="${t.testesPrevistos||0}"></div>
+    <div class="form-group"><label>Status</label>
+      <select id="ct-m-status" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:15.4px;outline:none">
+        <option value="em-teste" ${t.status==='em-teste'?'selected':''}>Em Teste</option>
+        <option value="concluido" ${t.status==='concluido'?'selected':''}>Concluído</option>
+        <option value="reprovado" ${t.status==='reprovado'?'selected':''}>Reprovado</option>
+      </select>
+    </div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="ctConfirmEditarTeste('${id}', this)">Salvar Alterações</button></div>`);
+  setupCodigoAutocomplete('ct-m-codigo', 'ct-m-modelo', 'ct-m-tensao');
+};
+
+window.ctConfirmEditarTeste = async function(id, btn) {
+  const codigo   = document.getElementById('ct-m-codigo').value.trim();
+  const modelo   = document.getElementById('ct-m-modelo').value.trim();
+  const tensao   = document.getElementById('ct-m-tensao').value.trim();
+  const numeroSerie = document.getElementById('ct-m-serie').value.trim();
+  const dataInicial = document.getElementById('ct-m-datainicial').value;
+  const dataFinal    = document.getElementById('ct-m-datafinal').value;
+  const testesPrevistos = parseInt(document.getElementById('ct-m-previstos').value) || 0;
+  const status = document.getElementById('ct-m-status').value;
+  if (!numeroSerie) { toast('Informe o Nº de Série!', 'red'); return; }
+  const done = setBtnLoading(btn, 'Salvando...');
+  setSyncStatus('syncing');
+  try {
+    await updateDoc(doc(db, 'carga_testes', id), { codigo, modelo, tensao, numeroSerie, dataInicial, dataFinal, testesPrevistos, status });
+    setSyncStatus('ok');
+    closeModal();
+    toast('Teste atualizado!', 'green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao atualizar teste: ' + e.message, 'red');
+  } finally {
+    done();
+  }
+};
+
+window.ctExcluirTeste = async function(id, btn) {
+  if (!confirm('Remover este teste de carga? Os registros de carga já lançados para ele não serão excluídos automaticamente.')) return;
+  const done = setBtnLoading(btn, 'Removendo...');
+  setSyncStatus('syncing');
+  try {
+    await deleteDoc(doc(db, 'carga_testes', id));
+    setSyncStatus('ok');
+    toast('Teste removido.', 'red');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao remover teste: ' + e.message, 'red');
+  } finally {
+    done();
+  }
+};
+
+// ── REGISTRO DE CARGA: modais ──
+window.ctOpenNovoRegistro = function() {
+  if (!cargaTestes.length) { toast('Cadastre um teste de carga antes de lançar registros!', 'red'); return; }
+  const today = new Date().toISOString().slice(0,10);
+  const options = cargaTestes.map(t => `<option value="${escapeAttr(t.id)}">${escapeHtml(t.numeroSerie||'—')} — ${escapeHtml(t.modelo||'')} (${escapeHtml(t.tensao||'')})</option>`).join('');
+  openModal(`<div class="modal-title">📝 Novo Registro de Carga</div><div class="modal-sub">Lance um ciclo de teste para uma unidade cadastrada.</div>
+    <div class="form-group"><label>Nº de Série</label>
+      <select id="ct-r-teste" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:15.4px;outline:none">${options}</select>
+    </div>
+    <div class="form-group"><label>Data</label><input id="ct-r-data" type="date" value="${today}"></div>
+    <div class="form-group"><label>Turno</label>
+      <select id="ct-r-turno" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:15.4px;outline:none">
+        <option value="Manhã">Manhã</option>
+        <option value="Tarde">Tarde</option>
+        <option value="Noite">Noite</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Ciclo do Dia</label><input id="ct-r-ciclo" type="number" min="0" step="1" placeholder="ex: 4"></div>
+    <div class="form-group"><label>Carga</label><input id="ct-r-carga" placeholder="ex: Cheia, 2kg... (opcional)"></div>
+    <div class="form-group"><label>Observação</label><input id="ct-r-obs" placeholder="opcional"></div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="ctConfirmNovoRegistro(this)">Lançar Registro</button></div>`);
+};
+
+window.ctConfirmNovoRegistro = async function(btn) {
+  const testeId = document.getElementById('ct-r-teste').value;
+  const data    = document.getElementById('ct-r-data').value;
+  const turno   = document.getElementById('ct-r-turno').value;
+  const cicloDia = parseFloat(document.getElementById('ct-r-ciclo').value) || 0;
+  const carga   = document.getElementById('ct-r-carga').value.trim();
+  const observacao = document.getElementById('ct-r-obs').value.trim();
+  const teste = cargaTestes.find(t => t.id === testeId);
+  if (!teste) { toast('Selecione um teste válido!', 'red'); return; }
+  if (!data) { toast('Informe a data!', 'red'); return; }
+  const done = setBtnLoading(btn, 'Salvando...');
+  setSyncStatus('syncing');
+  try {
+    await addDoc(collection(db, 'carga_registros'), {
+      testeId, numeroSerie: teste.numeroSerie||'', modelo: teste.modelo||'', tensao: teste.tensao||'',
+      data, turno, cicloDia, carga, observacao,
+      createdAt: serverTimestamp(), criadoPor: currentUser ? currentUser.name : '—'
+    });
+    setSyncStatus('ok');
+    closeModal();
+    toast('Registro de carga lançado!', 'green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao lançar registro: ' + e.message, 'red');
+  } finally {
+    done();
+  }
+};
+
+window.ctOpenEditarRegistro = function(id) {
+  const r = cargaRegistros.find(x => x.id === id); if (!r) return;
+  const options = cargaTestes.map(t => `<option value="${escapeAttr(t.id)}" ${t.id===r.testeId?'selected':''}>${escapeHtml(t.numeroSerie||'—')} — ${escapeHtml(t.modelo||'')} (${escapeHtml(t.tensao||'')})</option>`).join('');
+  openModal(`<div class="modal-title">✏️ Editar Registro de Carga</div><div class="modal-sub">${escapeHtml(r.numeroSerie||'')}</div>
+    <div class="form-group"><label>Nº de Série</label>
+      <select id="ct-r-teste" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:15.4px;outline:none">${options}</select>
+    </div>
+    <div class="form-group"><label>Data</label><input id="ct-r-data" type="date" value="${escapeAttr(r.data||'')}"></div>
+    <div class="form-group"><label>Turno</label>
+      <select id="ct-r-turno" style="width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font);font-size:15.4px;outline:none">
+        <option value="Manhã" ${r.turno==='Manhã'?'selected':''}>Manhã</option>
+        <option value="Tarde" ${r.turno==='Tarde'?'selected':''}>Tarde</option>
+        <option value="Noite" ${r.turno==='Noite'?'selected':''}>Noite</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Ciclo do Dia</label><input id="ct-r-ciclo" type="number" min="0" step="1" value="${r.cicloDia||0}"></div>
+    <div class="form-group"><label>Carga</label><input id="ct-r-carga" value="${escapeAttr(r.carga||'')}"></div>
+    <div class="form-group"><label>Observação</label><input id="ct-r-obs" value="${escapeAttr(r.observacao||'')}"></div>
+    <div class="modal-actions"><button class="btn-modal-cancel" onclick="closeModal()">Cancelar</button><button class="btn-modal-confirm" onclick="ctConfirmEditarRegistro('${id}', this)">Salvar Alterações</button></div>`);
+};
+
+window.ctConfirmEditarRegistro = async function(id, btn) {
+  const testeId = document.getElementById('ct-r-teste').value;
+  const data    = document.getElementById('ct-r-data').value;
+  const turno   = document.getElementById('ct-r-turno').value;
+  const cicloDia = parseFloat(document.getElementById('ct-r-ciclo').value) || 0;
+  const carga   = document.getElementById('ct-r-carga').value.trim();
+  const observacao = document.getElementById('ct-r-obs').value.trim();
+  const teste = cargaTestes.find(t => t.id === testeId);
+  if (!teste) { toast('Selecione um teste válido!', 'red'); return; }
+  if (!data) { toast('Informe a data!', 'red'); return; }
+  const done = setBtnLoading(btn, 'Salvando...');
+  setSyncStatus('syncing');
+  try {
+    await updateDoc(doc(db, 'carga_registros', id), {
+      testeId, numeroSerie: teste.numeroSerie||'', modelo: teste.modelo||'', tensao: teste.tensao||'',
+      data, turno, cicloDia, carga, observacao
+    });
+    setSyncStatus('ok');
+    closeModal();
+    toast('Registro atualizado!', 'green');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao atualizar registro: ' + e.message, 'red');
+  } finally {
+    done();
+  }
+};
+
+window.ctExcluirRegistro = async function(id, btn) {
+  if (!confirm('Remover este registro de carga?')) return;
+  const done = setBtnLoading(btn, 'Removendo...');
+  setSyncStatus('syncing');
+  try {
+    await deleteDoc(doc(db, 'carga_registros', id));
+    setSyncStatus('ok');
+    toast('Registro removido.', 'red');
+  } catch(e) {
+    setSyncStatus('error');
+    toast('Erro ao remover registro: ' + e.message, 'red');
+  } finally {
+    done();
+  }
+};
+
 // ── TOAST ────────────────────────────────────────────
 window.toast = function(msg, color='green') {
   const el=document.createElement('div'); el.className=`toast ${color}`;
@@ -3283,6 +3758,10 @@ document.getElementById('filter-refugo-status').addEventListener('change', () =>
 document.getElementById('search-hist').addEventListener('input', () => { pagHist = 1; renderHistorico(); });
 document.getElementById('filter-hist-type').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
 document.getElementById('filter-hist-sort').addEventListener('change', () => { pagHist = 1; renderHistorico(); });
+
+// Testes com Carga
+document.getElementById('ct-search-cadastro').addEventListener('input', () => { pagCtCadastro = 1; ctRenderCadastro(); });
+document.getElementById('ct-search-registro').addEventListener('input', () => { pagCtRegistro = 1; ctRenderRegistro(); });
 
 // Sort headers via event delegation - works inside module scope
 document.addEventListener('click', e => {
